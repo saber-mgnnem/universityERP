@@ -99,7 +99,7 @@ export default function DataTable({ columns, data, actions, searchable = true, p
               <tr key={index} className="border-t border-border hover:bg-muted/50 transition">
                 {columns.map((col) => (
                   <td key={col.key} className="px-6 py-4 text-sm">
-                    {col.render ? col.render(item[col.key], item) : item[col.key]}
+                    {col.render ? col.render(item) : item[col.key]}
                   </td>
                 ))}
                 {actions && (

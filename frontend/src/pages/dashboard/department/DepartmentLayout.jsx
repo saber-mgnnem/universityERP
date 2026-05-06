@@ -16,9 +16,9 @@ import {
 const sidebarItems = [
   { label: "Dashboard", href: "/department", icon: LayoutDashboard },
   { label: "Courses", href: "/department/courses", icon: BookOpen },
-  { label: "Faculty", href: "/department/faculty", icon: Users },
+  { label: "Course Offering", href: "/department/CourseOffering", icon: Users },
   { label: "Analytics", href: "/department/analytics", icon: BarChart3 },
-  { label: "Workload", href: "/department/workload", icon: Clock },
+  { label: "student", href: "/department/student", icon: Users },
   { label: "Reports", href: "/department/reports", icon: FileText },
 ]
 

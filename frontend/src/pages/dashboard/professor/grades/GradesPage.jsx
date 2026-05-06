@@ -1,97 +1,149 @@
 'use client';
 
-import { useState } from 'react';
-
+import { useEffect, useState } from 'react';
+import API from '@/services/api';
 import DataTable from '@/components/dashboard/data-table';
 import FormModal from '@/components/dashboard/form-modal';
 import { Upload } from 'lucide-react';
 
-const mockGrades = [
-  { id: 1, studentId: 'CS001', name: 'Ahmed Mohammad', course: 'CS101', midterm: 85, final: 88, assignment: 90, grade: 'A', status: 'submitted' },
-  { id: 2, studentId: 'CS002', name: 'Fatima Al-Mansoury', course: 'CS101', midterm: 92, final: 95, assignment: 93, grade: 'A+', status: 'submitted' },
-  { id: 3, studentId: 'CS003', name: 'Mohamed Ali', course: 'CS101', midterm: 78, final: 82, assignment: 80, grade: 'B', status: 'submitted' },
-  { id: 4, studentId: 'CS004', name: 'Amina Hassan', course: 'CS101', midterm: 88, final: 91, assignment: 89, grade: 'A', status: 'submitted' },
-  { id: 5, studentId: 'CS005', name: 'Karim Ibrahim', course: 'CS101', midterm: 72, final: 75, assignment: 73, grade: 'C', status: 'pending' },
-];
-
 export default function GradesPage() {
-  const [grades, setGrades] = useState(mockGrades);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [grades, setGrades] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSubmitGrades = (formData) => {
-    console.log('Grades submitted:', formData);
+  // ================= COURSES =================
+  const fetchCourses = async () => {
+    const res = await API.get('/professor/offerings');
+    setCourses(res.data);
+  };
+
+  // ================= ENROLLMENTS =================
+  const fetchEnrollments = async (courseId) => {
+    const res = await API.get(`/enrollments?course_offering_id=${courseId}`);
+    setEnrollments(res.data);
+  };
+
+  // ================= GRADES =================
+  const fetchGrades = async (courseId) => {
+    const res = await API.get(`/grades?course_offering_id=${courseId}`);
+    setGrades(res.data);
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchEnrollments(selectedCourse);
+      fetchGrades(selectedCourse);
+    }
+  }, [selectedCourse]);
+
+  // ================= SUBMIT =================
+  const handleSubmitGrades = async (formData) => {
+    await API.post('/grades', {
+      enrollment_id: formData.enrollment_id,
+      ca: formData.ca,
+      midterm: formData.midterm,
+      final: formData.final,
+    });
+
+    fetchGrades(selectedCourse);
     setIsModalOpen(false);
   };
 
+  // ================= COLUMNS =================
   const columns = [
-    { key: 'studentId', label: 'Student ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'course', label: 'Course' },
-    { key: 'midterm', label: 'Midterm' },
-    { key: 'final', label: 'Final' },
-    { key: 'assignment', label: 'Assignment' },
-    { key: 'grade', label: 'Final Grade', render: (val) => <span className="font-bold text-lg">{val}</span> },
-    { key: 'status', label: 'Status', render: (val) => <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${val === 'submitted' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{val}</span> },
+    {
+      key: 'student',
+      label: 'Student',
+      render: (val, row) =>
+        row.enrollment?.student?.first_name +
+        ' ' +
+        row.enrollment?.student?.last_name,
+    },
+    { key: 'midterm_exam_marks', label: 'Midterm' },
+    { key: 'final_exam_marks', label: 'Final' },
+    { key: 'total_marks_obtained', label: 'Total' },
   ];
 
+  // ================= FORM =================
   const formFields = [
-    { name: 'course', label: 'Course', type: 'select', options: ['CS101', 'CS201', 'CS301'], required: true },
-    { name: 'gradeFile', label: 'Upload Grades (CSV)', type: 'file', required: true },
+    {
+      name: 'enrollment_id',
+      label: 'Student',
+      type: 'select',
+      options: enrollments.map((e) => ({
+        value: e.id,
+        label: e.student?.first_name + ' ' + e.student?.last_name,
+      })),
+      required: true,
+    },
+    { name: 'ca', label: 'CA', type: 'number' },
+    { name: 'midterm', label: 'Midterm', type: 'number' },
+    { name: 'final', label: 'Final', type: 'number' },
   ];
 
   return (
- 
-        <main className="p-8">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold">Grade Management</h1>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-              >
-                <Upload className="h-5 w-5" />
-                Submit Grades
-              </button>
-            </div>
+    <main className="p-8 space-y-6">
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Students</p>
-                <p className="text-3xl font-bold">{grades.length}</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Average GPA</p>
-                <p className="text-3xl font-bold">3.7</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Submitted</p>
-                <p className="text-3xl font-bold">4</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-3xl font-bold">1</p>
-              </div>
-            </div>
+      <h1 className="text-3xl font-bold">Grade Management</h1>
 
-            <div>
-              <h2 className="text-2xl font-semibold mb-4">Grade Distribution</h2>
-              <DataTable
-                columns={columns}
-                data={grades}
-                searchable={true}
-                pagination={true}
-              />
-            </div>
-          </div>
-           <FormModal
+      {/* COURSE BUTTONS */}
+      <div className="flex gap-2 flex-wrap">
+        {courses.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setSelectedCourse(c.id)}
+            className={`px-4 py-2 rounded-lg ${
+              selectedCourse === c.id
+                ? 'bg-primary text-white'
+                : 'bg-muted'
+            }`}
+          >
+            {c.course?.course_code}
+          </button>
+        ))}
+      </div>
+
+      {/* EMPTY STATES */}
+      {!selectedCourse && (
+        <p className="text-center text-muted-foreground">
+          Select a class to view grades
+        </p>
+      )}
+
+      {selectedCourse && enrollments.length === 0 && (
+        <p className="text-center text-muted-foreground">
+          No enrolled students in this class yet
+        </p>
+      )}
+
+      {/* TABLE */}
+      {selectedCourse && enrollments.length > 0 && (
+        <DataTable columns={columns} data={grades} searchable pagination />
+      )}
+
+      {/* BUTTON */}
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg"
+      >
+        <Upload className="h-5 w-5" />
+        Add Grade
+      </button>
+
+      {/* MODAL */}
+      <FormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Submit Grades"
+        title="Add Grade"
         fields={formFields}
         onSubmit={handleSubmitGrades}
       />
-        </main>
-
-     
+    </main>
   );
 }

@@ -25,7 +25,7 @@ import RectorDashboardHome from '@/pages/dashboard/rector/DashboardHome'
 import RectorAnalyticsPage from '@/pages/dashboard/rector/analytics/AnalyticsPage'
 import RectorBudgetPage from '@/pages/dashboard/rector/budget/BudgetPage'
 import RectorDepartmentsPage from '@/pages/dashboard/rector/departments/DepartmentsPage'
-import RectorPerformancePage from '@/pages/dashboard/rector/performance/PerformancePage'
+import RectorAcademicSessionsPage from '@/pages/dashboard/rector/performance/AcademicSessionsPage'
 import RectorReportsPage from '@/pages/dashboard/rector/reports/ReportsPage'
 
 
@@ -33,16 +33,10 @@ import DepartmentLayout from '@/pages/dashboard/department/DepartmentLayout'
 import DepartmentDashboardHome from '@/pages/dashboard/department/DashboardHome'
 import DepartmentBudgetPage from '@/pages/dashboard/department/budget/BudgetPage'
 import DepartmentCoursesPage from '@/pages/dashboard/department/courses/CoursesPage'
-import DepartmentFacultyPage from '@/pages/dashboard/department/faculty/FacultyPage'
+import DepartmentCourseOfferingPage from '@/pages/dashboard/department/CourseOffering/CourseOfferingPage'
 import DepartmentReportsPage from '@/pages/dashboard/department/reports/ReportsPage'
 import DepartmentStudentsPage from '@/pages/dashboard/department/students/StudentsPage'
 
-import FinanceLayout from '@/pages/dashboard/finance/FinanceLayout'
-import FinanceDashboardHome from '@/pages/dashboard/finance/DashboardHome'
-import FinanceBudgetPage from '@/pages/dashboard/finance/budget/BudgetPage'
-import FinancePaymentsPage from '@/pages/dashboard/finance/payments/PaymentsPage'
-import FinanceReconciliationPage from '@/pages/dashboard/finance/reconciliation/ReconciliationPage'
-import FinanceTransactionsPage from '@/pages/dashboard/finance/transactions/TransactionsPage'
 
 import HrLayout from '@/pages/dashboard/hr/HRLayout'
 import HrDashboardHome from '@/pages/dashboard/hr/DashboardHome'
@@ -74,12 +68,6 @@ import StudentCoursesPage from '@/pages/dashboard/student/courses/StudentCourses
 
 
 
-// Other dashboards
-import { StudentDashboard } from '@/pages/dashboard/StudentDashboard'
-import { ProfessorDashboard } from '@/pages/dashboard/ProfessorDashboard'
-import { DepartmentDashboard } from '@/pages/dashboard/DepartmentDashboard'
-import { HRDashboard } from '@/pages/dashboard/HRDashboard'
-import { FinanceDashboard } from '@/pages/dashboard/FinanceDashboard'
 
 function App() {
   return (
@@ -128,7 +116,7 @@ function App() {
             <Route index element={<RectorDashboardHome />} />
             <Route path="dashboard" element={<RectorDashboardHome />} />
             <Route path="analytics" element={<RectorAnalyticsPage />} />
-            <Route path="predictions" element={<RectorPerformancePage />} />
+            <Route path="AcademicSessionsPage" element={<RectorAcademicSessionsPage />} />
             <Route path="reports" element={<RectorReportsPage />} />
             <Route path="departments" element={<RectorDepartmentsPage />} />
             <Route path="budget" element={<RectorBudgetPage />} />
@@ -149,31 +137,14 @@ function App() {
             <Route path="dashboard" element={<DepartmentDashboardHome />} />
             <Route path="analytics" element={<DepartmentBudgetPage />} />
             <Route path="courses" element={<DepartmentCoursesPage />} />
-            <Route path="faculty" element={<DepartmentFacultyPage />} />
+            <Route path="CourseOffering" element={<DepartmentCourseOfferingPage />} />
             <Route path="reports" element={<DepartmentReportsPage />} />
-            <Route path="budget" element={<DepartmentStudentsPage />} />
+            <Route path="student" element={<DepartmentStudentsPage />} />
+
 
             
           </Route> 
-          <Route
-            path="/finance"
-            element={
-              <ProtectedRoute>
-                <FinanceLayout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Default route for /admin */}
-            <Route index element={<FinanceDashboardHome />} />
-            <Route path="dashboard" element={<FinanceDashboardHome />} />
-            <Route path="payments" element={<FinancePaymentsPage />} />
-            <Route path="budget" element={<FinanceBudgetPage />} />
-            <Route path="revenue" element={<RectorReportsPage />} />
-            <Route path="expenses" element={<RectorDepartmentsPage />} />
-            <Route path="invoices" element={<RectorBudgetPage />} />
-
-            
-          </Route> 
+  
           <Route
             path="/hr"
             element={

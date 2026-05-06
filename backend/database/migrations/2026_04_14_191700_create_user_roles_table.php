@@ -6,16 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
-        Schema::create('user_roles', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('role_id')->constrained()->restrictOnDelete();
-            $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->boolean('is_primary')->default(false);
-            $table->timestamps();
+       Schema::create('user_roles', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('role_id')->constrained()->restrictOnDelete();
 
-            $table->unique(['user_id','role_id']);
-        });
+    $table->timestamp('assigned_at')->nullable();
+    $table->foreignId('assigned_by')->nullable();
+    $table->boolean('is_primary')->default(false);
+
+    $table->timestamps();
+});
     }
 
     public function down(): void {

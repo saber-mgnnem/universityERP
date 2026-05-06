@@ -1,79 +1,218 @@
 'use client';
 
-import { useState } from 'react';
-import DataTable from '@/components/dashboard/data-table';
-
-const mockAttendance = [
-  { id: 1, studentId: 'CS001', name: 'Ahmed Mohammad', present: 42, absent: 2, late: 1, percentage: '95%' },
-  { id: 2, studentId: 'CS002', name: 'Fatima Al-Mansoury', present: 44, absent: 0, late: 0, percentage: '100%' },
-  { id: 3, studentId: 'CS003', name: 'Mohamed Ali', present: 40, absent: 3, late: 1, percentage: '91%' },
-  { id: 4, studentId: 'CS004', name: 'Amina Hassan', present: 43, absent: 1, late: 0, percentage: '98%' },
-  { id: 5, studentId: 'CS005', name: 'Karim Ibrahim', present: 38, absent: 5, late: 1, percentage: '86%' },
-];
+import { useEffect, useState } from 'react';
+import API from '@/services/api';
 
 export default function AttendancePage() {
-  const [course, setCourse] = useState('CS101');
+  const [course, setCourse] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [attendance, setAttendance] = useState([]);
 
-  const columns = [
-    { key: 'studentId', label: 'Student ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'present', label: 'Present' },
-    { key: 'absent', label: 'Absent' },
-    { key: 'late', label: 'Late' },
-    { key: 'percentage', label: 'Attendance %', render: (val) => <span className="font-bold">{val}</span> },
-  ];
+  const today = new Date().toISOString().split('T')[0];
+
+  // ================= FETCH COURSES =================
+  const fetchCourses = async () => {
+    try {
+      const res = await API.get('/professor/offerings');
+      setCourses(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= FETCH STUDENTS =================
+  const fetchStudents = async (offeringId) => {
+    try {
+      const res = await API.get(
+        `/enrolled-students?course_offering_id=${offeringId}`
+      );
+      setStudents(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= FETCH ATTENDANCE =================
+  const fetchAttendance = async (offeringId) => {
+    try {
+      const res = await API.get(
+        `/attendance?course_offering_id=${offeringId}`
+      );
+      setAttendance(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  useEffect(() => {
+    if (course) {
+      fetchStudents(course);
+      fetchAttendance(course);
+    } else {
+      setStudents([]);
+      setAttendance([]);
+    }
+  }, [course]);
+
+  // ================= MARK ATTENDANCE =================
+  const markAttendance = async (studentId, status) => {
+    await API.post('/attendance', {
+      course_offering_id: course,
+      student_id: studentId,
+      attendance_date: today,
+      attendance_status: status,
+    });
+
+    fetchAttendance(course);
+  };
+
+  // ================= UPDATE =================
+  const updateAttendance = async (id, status) => {
+    await API.put(`/attendance/${id}`, {
+      attendance_status: status,
+    });
+
+    fetchAttendance(course);
+  };
+
+  // ================= DELETE =================
+  const deleteAttendance = async (id) => {
+    await API.delete(`/attendance/${id}`);
+    fetchAttendance(course);
+  };
 
   return (
+    <main className="p-8">
+      <div className="space-y-6">
 
-        <main className="p-8">
-          <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Attendance Tracking</h1>
+        <h1 className="text-3xl font-bold">Attendance Tracking</h1>
 
-            <div className="flex gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium mb-2">Select Course</label>
-                <select
-                  value={course}
-                  onChange={(e) => setCourse(e.target.value)}
-                  className="px-4 py-2 border border-input rounded-lg bg-background"
-                >
-                  <option>CS101</option>
-                  <option>CS201</option>
-                  <option>CS301</option>
-                </select>
-              </div>
-              <button className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
-                Download Report
-              </button>
-            </div>
+        {/* ================= COURSE SELECT (PILLS STYLE) ================= */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setCourse('')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              course === ''
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80'
+            }`}
+          >
+            All Courses
+          </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Sessions</p>
-                <p className="text-3xl font-bold">44</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Average Attendance</p>
-                <p className="text-3xl font-bold">94%</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Absences</p>
-                <p className="text-3xl font-bold">11</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Late</p>
-                <p className="text-3xl font-bold">3</p>
-              </div>
-            </div>
+          {courses.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCourse(c.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                course === c.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-muted/80'
+              }`}
+            >
+              {c.course?.course_code}
+            </button>
+          ))}
+        </div>
 
-            <DataTable
-              columns={columns}
-              data={mockAttendance}
-              searchable={true}
-              pagination={true}
-            />
+        {/* ================= EMPTY STATE 1 ================= */}
+        {!course && (
+          <div className="text-center p-10 border rounded-lg bg-muted/20">
+            <p className="text-lg font-medium">
+              Please select a class to view attendance
+            </p>
           </div>
-        </main>
-     
+        )}
+
+        {/* ================= NO STUDENTS ================= */}
+        {course && students.length === 0 && (
+          <div className="text-center p-10 border rounded-lg bg-muted/20">
+            <p className="text-lg font-medium text-muted-foreground">
+              No enrolled students in this class yet
+            </p>
+          </div>
+        )}
+
+        {/* ================= STUDENT LIST ================= */}
+        {course && students.length > 0 && (
+          <div className="space-y-3">
+
+            {students.map((s) => {
+              const existing = attendance.find(
+                (a) => a.student_id === s.student_id
+              );
+
+              return (
+                <div
+                  key={s.student_id}
+                  className="flex justify-between p-4 border rounded-lg bg-card"
+                >
+                  <div>
+                    <p className="font-bold">{s.name}</p>
+                  </div>
+
+                  <div className="flex gap-2 flex-wrap">
+
+                    {/* PRESENT */}
+                    <button
+                      onClick={() =>
+                        existing
+                          ? updateAttendance(existing.id, 'Present')
+                          : markAttendance(s.student_id, 'Present')
+                      }
+                      className="px-3 py-1 bg-green-500 text-white rounded"
+                    >
+                      Present
+                    </button>
+
+                    {/* ABSENT */}
+                    <button
+                      onClick={() =>
+                        existing
+                          ? updateAttendance(existing.id, 'Absent')
+                          : markAttendance(s.student_id, 'Absent')
+                      }
+                      className="px-3 py-1 bg-red-500 text-white rounded"
+                    >
+                      Absent
+                    </button>
+
+                    {/* LATE */}
+                    <button
+                      onClick={() =>
+                        existing
+                          ? updateAttendance(existing.id, 'Late')
+                          : markAttendance(s.student_id, 'Late')
+                      }
+                      className="px-3 py-1 bg-yellow-500 text-white rounded"
+                    >
+                      Late
+                    </button>
+
+                    {/* DELETE */}
+                    {existing && (
+                      <button
+                        onClick={() => deleteAttendance(existing.id)}
+                        className="px-3 py-1 bg-gray-700 text-white rounded"
+                      >
+                        Delete
+                      </button>
+                    )}
+
+                  </div>
+                </div>
+              );
+            })}
+
+          </div>
+        )}
+
+      </div>
+    </main>
   );
 }

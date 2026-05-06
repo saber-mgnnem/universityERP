@@ -14,7 +14,7 @@ import {
 const sidebarItems = [
   { label: "Dashboard", href: "/rector/dashboard", icon: LayoutDashboard },
   { label: "Strategic Analytics", href: "/rector/analytics", icon: BarChart3 },
-  { label: "AI Predictions", href: "/rector/predictions", icon: Brain },
+  { label: "AcademicSessionsPage", href: "/rector/AcademicSessionsPage", icon: Brain },
   { label: "Performance Reports", href: "/rector/reports", icon: FileText },
   { label: "Departments", href: "/rector/departments", icon: Building2 },
   { label: "Budget Overview", href: "/rector/budget", icon: DollarSign },

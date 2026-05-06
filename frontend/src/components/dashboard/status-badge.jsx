@@ -13,11 +13,17 @@ const statusStyles = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
-export default function StatusBadge({ status, label }) {
-  const style = statusStyles[status] || statusStyles.active;
+export default function StatusBadge({ status }) {
+  const safeStatus =
+    typeof status === 'string'
+      ? status.toLowerCase()
+      : 'unknown';
+
+  const style = statusStyles[safeStatus] || statusStyles.active;
+
   return (
     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${style}`}>
-      {label || status}
+      {safeStatus}
     </span>
   );
 }

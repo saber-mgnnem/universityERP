@@ -1,78 +1,134 @@
 'use client';
-import DataTable from '@/components/dashboard/data-table';
 
-const mockGrades = [
-  { id: 1, code: 'CS101', title: 'Introduction to Programming', semester: 'Spring 2024', grade: 'A', gpa: 4.0, credits: 3 },
-  { id: 2, code: 'MATH101', title: 'Calculus I', semester: 'Spring 2024', grade: 'A-', gpa: 3.7, credits: 4 },
-  { id: 3, code: 'CS301', title: 'Algorithms', semester: 'Fall 2023', grade: 'B+', gpa: 3.3, credits: 3 },
-  { id: 4, code: 'PHY101', title: 'Physics I', semester: 'Fall 2023', grade: 'A', gpa: 4.0, credits: 3 },
-  { id: 5, code: 'ENG101', title: 'English Composition', semester: 'Spring 2023', grade: 'B', gpa: 3.0, credits: 3 },
-];
+import { useState, useMemo } from 'react';
+import { ChevronUp, ChevronDown, Search } from 'lucide-react';
 
-export default function MyGradesPage() {
-  const columns = [
-    { key: 'code', label: 'Course Code' },
-    { key: 'title', label: 'Course Title' },
-    { key: 'semester', label: 'Semester' },
-    { key: 'grade', label: 'Grade', render: (val) => <span className="font-bold text-lg">{val}</span> },
-    { key: 'gpa', label: 'GPA' },
-    { key: 'credits', label: 'Credits' },
-  ];
+export default function DataTable({
+  columns,
+  data = [],   // ✅ DEFAULT SAFE ARRAY
+  actions,
+  searchable = true,
+  pagination = true
+}) {
+  const [sortConfig, setSortConfig] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const cumulativeGPA = 3.64;
-  const semesterGPA = 3.85;
+  const itemsPerPage = 10;
+
+  // =========================
+  // SAFE ARRAY GUARANTEE
+  // =========================
+  const safeData = Array.isArray(data) ? data : [];
+
+  // =========================
+  // SAFE VALUE
+  // =========================
+  const safeValue = (val) => {
+    if (val === null || val === undefined) return '—';
+    if (typeof val === 'object') {
+      return (
+        val.name ||
+        val.title ||
+        val.semester_name ||
+        val.course_title ||
+        val.course_code ||
+        '—'
+      );
+    }
+    return val;
+  };
+
+  // =========================
+  // FILTER
+  // =========================
+  const filteredData = useMemo(() => {
+    if (!searchable || !searchTerm) return safeData;
+
+    return safeData.filter((item) =>
+      columns.some((col) =>
+        String(safeValue(item[col.key]))
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [safeData, searchTerm, columns, searchable]);
+
+  // =========================
+  // SORT
+  // =========================
+  const sortedData = useMemo(() => {
+    let sorted = [...filteredData]; // ✅ NOW SAFE
+
+    if (sortConfig) {
+      sorted.sort((a, b) => {
+        const aValue = safeValue(a[sortConfig.key]);
+        const bValue = safeValue(b[sortConfig.key]);
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return sorted;
+  }, [filteredData, sortConfig]);
+
+  // =========================
+  // PAGINATION
+  // =========================
+  const paginatedData = useMemo(() => {
+    if (!pagination) return sortedData;
+
+    const start = (currentPage - 1) * itemsPerPage;
+    return sortedData.slice(start, start + itemsPerPage);
+  }, [sortedData, currentPage, pagination]);
+
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
 
   return (
+    <div className="space-y-4">
 
-        <main className="p-8">
-          <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Academic Grades</h1>
+      {searchable && (
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-5 w-5" />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search..."
+            className="w-full pl-10 p-2 border rounded"
+          />
+        </div>
+      )}
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Cumulative GPA</p>
-                <p className="text-3xl font-bold">{cumulativeGPA}</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Semester GPA</p>
-                <p className="text-3xl font-bold">{semesterGPA}</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Courses</p>
-                <p className="text-3xl font-bold">{mockGrades.length}</p>
-              </div>
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Credits</p>
-                <p className="text-3xl font-bold">{mockGrades.reduce((sum, g) => sum + g.credits, 0)}</p>
-              </div>
-            </div>
+      <table className="w-full border">
+        <thead>
+          <tr>
+            {columns.map((col) => (
+              <th key={col.key} className="p-2 border">
+                {col.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
 
-            <DataTable
-              columns={columns}
-              data={mockGrades}
-              searchable={true}
-              pagination={true}
-            />
+        <tbody>
+          {paginatedData.map((row, i) => (
+            <tr key={i} className="border-t">
 
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4">GPA History</h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted rounded">
-                  <span>Spring 2024</span>
-                  <span className="font-bold">3.85</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted rounded">
-                  <span>Fall 2023</span>
-                  <span className="font-bold">3.65</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted rounded">
-                  <span>Spring 2023</span>
-                  <span className="font-bold">3.40</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-    
+              {columns.map((col) => (
+                <td key={col.key} className="p-2">
+                  {col.render
+                    ? col.render(row[col.key], row)
+                    : safeValue(row[col.key])}
+                </td>
+              ))}
+
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+    </div>
   );
 }

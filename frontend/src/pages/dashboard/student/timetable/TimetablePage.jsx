@@ -1,91 +1,102 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Clock, MapPin } from 'lucide-react';
-
-
-const timetable = {
-  Monday: [
-    { code: 'CS101', title: 'Introduction to Programming', time: '10:00 - 11:00', room: 'B101', instructor: 'Dr. Ahmed Hassan' },
-    { code: 'MATH101', title: 'Calculus I', time: '14:00 - 15:30', room: 'A205', instructor: 'Prof. Laila Mansour' },
-  ],
-  Tuesday: [
-    { code: 'CS301', title: 'Algorithms', time: '13:00 - 14:30', room: 'B310', instructor: 'Dr. Mohamed Ibrahim' },
-  ],
-  Wednesday: [
-    { code: 'CS101', title: 'Introduction to Programming', time: '10:00 - 11:00', room: 'B101', instructor: 'Dr. Ahmed Hassan' },
-    { code: 'PHY101', title: 'Physics I', time: '15:00 - 16:30', room: 'L101', instructor: 'Prof. Amina Karim' },
-  ],
-  Thursday: [
-    { code: 'MATH101', title: 'Calculus I', time: '14:00 - 15:30', room: 'A205', instructor: 'Prof. Laila Mansour' },
-  ],
-  Friday: [
-    { code: 'CS101', title: 'Introduction to Programming', time: '10:00 - 11:00', room: 'B101', instructor: 'Dr. Ahmed Hassan' },
-  ],
-};
+import API from '@/services/api';
 
 export default function TimetablePage() {
+  const [timetable, setTimetable] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTimetable();
+  }, []);
+
+  const fetchTimetable = async () => {
+    try {
+      const res = await API.get('/student-timetable');
+      setTimetable(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8">Loading timetable...</div>;
+  }
+
   return (
+    <main className="p-8">
+      <div className="space-y-6">
 
-        <main className="p-8">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold">Weekly Timetable</h1>
-              <button className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
-                Export to Calendar
-              </button>
-            </div>
+        <h1 className="text-3xl font-bold">Weekly Timetable</h1>
 
-            <div className="space-y-4">
-              {Object.entries(timetable).map(([day, classes]) => (
-                <div key={day} className="bg-card border border-border rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4">{day}</h3>
-                  {classes.length > 0 ? (
-                    <div className="space-y-3">
-                      {classes.map((cls, idx) => (
-                        <div key={idx} className="flex items-start gap-4 p-4 bg-muted rounded-lg hover:bg-muted/80 transition">
-                          <div className="flex-1">
-                            <p className="font-semibold text-lg">{cls.code}: {cls.title}</p>
-                            <p className="text-sm text-muted-foreground mt-1">Instructor: {cls.instructor}</p>
-                            <div className="mt-3 space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-4 w-4" />
-                                {cls.time}
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <MapPin className="h-4 w-4" />
-                                {cls.room}
-                              </div>
-                            </div>
-                          </div>
+        <div className="space-y-6">
+
+          {Object.keys(timetable).length === 0 && (
+            <p className="text-muted-foreground">No classes enrolled</p>
+          )}
+
+          {Object.entries(timetable).map(([day, classes]) => {
+
+            // 🔥 SORT BY START TIME
+            const sortedClasses = [...classes].sort((a, b) => {
+              return a.time.localeCompare(b.time);
+            });
+
+            return (
+              <div key={day} className="bg-card border rounded-lg p-6">
+
+                {/* DAY TITLE */}
+                <h3 className="text-xl font-bold mb-4">{day}</h3>
+
+                {/* ROW LAYOUT */}
+                <div className="flex gap-4 overflow-x-auto">
+
+                  {sortedClasses.map((cls, idx) => (
+                    <div
+                      key={idx}
+                      className="min-w-[250px] p-4 bg-muted rounded-lg"
+                    >
+
+                      <p className="font-semibold text-lg">
+                        {cls.code}
+                      </p>
+
+                      <p className="text-sm text-muted-foreground">
+                        {cls.title}
+                      </p>
+
+                      <p className="text-sm mt-1">
+                        Instructor: {cls.instructor}
+                      </p>
+
+                      <div className="mt-3 space-y-2 text-sm">
+
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          {cls.time}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No classes scheduled</p>
-                  )}
-                </div>
-              ))}
-            </div>
 
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4">Weekly Summary</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Classes</p>
-                  <p className="text-3xl font-bold">8</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Hours</p>
-                  <p className="text-3xl font-bold">11</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Days with Classes</p>
-                  <p className="text-3xl font-bold">5</p>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          {cls.room}
+                        </div>
+
+                      </div>
+
+                    </div>
+                  ))}
+
                 </div>
               </div>
-            </div>
-          </div>
-        </main>
-    
+            );
+          })}
+
+        </div>
+      </div>
+    </main>
   );
 }
