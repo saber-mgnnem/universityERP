@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-
 class LeaveRequest extends Model
 {
     protected $fillable = [
@@ -13,8 +12,11 @@ class LeaveRequest extends Model
         'start_date',
         'end_date',
         'number_of_days',
+        'leave_reason',
         'approval_status',
-        'approved_by'
+        'approved_by',
+        'approval_date',
+        'rejection_reason',
     ];
 
     public function staff()

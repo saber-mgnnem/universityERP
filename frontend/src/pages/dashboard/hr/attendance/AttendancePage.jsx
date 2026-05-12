@@ -1,175 +1,205 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, Download, Filter } from 'lucide-react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import API from '@/services/api';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LayoutDashboard, Users, FileText, UserPlus, Clock, Briefcase } from 'lucide-react';
-
-const sidebarItems = [
-  { label: "Dashboard", href: "/dashboard/hr", icon: LayoutDashboard },
-  { label: "Staff Profiles", href: "/dashboard/hr/staff", icon: Users },
-  { label: "Contracts", href: "/dashboard/hr/contracts", icon: FileText },
-  { label: "Leave Management", href: "/dashboard/hr/leave", icon: Calendar },
-  { label: "Recruitment", href: "/dashboard/hr/recruitment", icon: UserPlus },
-  { label: "Attendance", href: "/dashboard/hr/attendance", icon: Clock },
-  { label: "Departments", href: "/dashboard/hr/departments", icon: Briefcase },
-];
-
-const attendanceData = [
-  {
-    id: 1,
-    name: "Dr. Emily Chen",
-    department: "Computer Science",
-    present: 18,
-    absent: 1,
-    leave: 1,
-    late: 2,
-    attendanceRate: 94,
-  },
-  {
-    id: 2,
-    name: "Prof. David Lee",
-    department: "Mathematics",
-    present: 19,
-    absent: 0,
-    leave: 1,
-    late: 0,
-    attendanceRate: 100,
-  },
-  {
-    id: 3,
-    name: "Sarah Wilson",
-    department: "Physics",
-    present: 17,
-    absent: 2,
-    leave: 1,
-    late: 3,
-    attendanceRate: 88,
-  },
-  {
-    id: 4,
-    name: "James Brown",
-    department: "Biology",
-    present: 15,
-    absent: 1,
-    leave: 4,
-    late: 2,
-    attendanceRate: 82,
-  },
-  {
-    id: 5,
-    name: "Maria Garcia",
-    department: "Engineering",
-    present: 18,
-    absent: 0,
-    leave: 2,
-    late: 1,
-    attendanceRate: 95,
-  },
-];
 
 export default function AttendancePage() {
-  const [selectedMonth, setSelectedMonth] = useState('January 2026');
+
+  const [selectedMonth, setSelectedMonth] = useState('2026-01');
+  const [attendance, setAttendance] = useState([]);
+
+  const authHeaders = {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  };
+
+  // ================= FETCH ATTENDANCE =================
+  const fetchAttendance = async () => {
+    try {
+      const res = await API.get('/staff-attendance', authHeaders);
+      setAttendance(res.data);
+      console.log(res.data)
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendance();
+  }, []);
+
+  // ================= AUTO ABSENCE =================
+  const handleAutoAbsence = async () => {
+    try {
+      await API.post('/staff-attendance/auto-absence', {}, authHeaders);
+      fetchAttendance();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= EXPORT =================
+  const handleExport = async () => {
+    try {
+      const res = await API.get('/staff-attendance', authHeaders);
+
+      const dataStr =
+        'data:text/json;charset=utf-8,' +
+        encodeURIComponent(JSON.stringify(res.data));
+
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', 'attendance.json');
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= STATUS COLORS =================
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Present':
+        return 'bg-green-500/10 text-green-700 border-green-500/20';
+      case 'Absent':
+        return 'bg-red-500/10 text-red-700 border-red-500/20';
+      case 'Late':
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
+      case 'Leave':
+        return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
+      default:
+        return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
+    }
+  };
 
   return (
+    <main className="p-6 space-y-6">
 
-        <main className="p-6 space-y-6">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Attendance Tracking</h1>
-            <Button className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
-              Export Report
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Attendance Tracking</h1>
+
+        <div className="flex gap-2">
+          <Button onClick={handleAutoAbsence}>
+            Auto Absence
+          </Button>
+
+          <Button onClick={handleExport} className="flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Export
+          </Button>
+        </div>
+      </div>
+
+      {/* FILTER */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-4">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-4 py-2 border rounded-lg bg-background"
+            >
+              <option value="2026-01">January 2026</option>
+              <option value="2025-12">December 2025</option>
+              <option value="2025-11">November 2025</option>
+              <option value="2025-10">October 2025</option>
+            </select>
+
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
             </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Month Selector */}
-          <Card className="border-border">
-            <CardContent className="pt-6">
-              <div className="flex gap-4">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-4 py-2 border border-input rounded-lg bg-background cursor-pointer"
-                >
-                  <option>January 2026</option>
-                  <option>December 2025</option>
-                  <option>November 2025</option>
-                  <option>October 2025</option>
-                </select>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* TABLE */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Staff Attendance</CardTitle>
+          <CardDescription>Live HR attendance tracking system</CardDescription>
+        </CardHeader>
 
-          {/* Attendance Table */}
-          <Card className="border-border overflow-hidden">
-            <CardHeader>
-              <CardTitle>Staff Attendance - {selectedMonth}</CardTitle>
-              <CardDescription>View attendance records for all staff members</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-border bg-muted/50">
-                    <tr>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Name</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Department</th>
-                      <th className="text-center py-3 px-6 font-medium text-muted-foreground">Present</th>
-                      <th className="text-center py-3 px-6 font-medium text-muted-foreground">Absent</th>
-                      <th className="text-center py-3 px-6 font-medium text-muted-foreground">Leave</th>
-                      <th className="text-center py-3 px-6 font-medium text-muted-foreground">Late</th>
-                      <th className="text-center py-3 px-6 font-medium text-muted-foreground">Rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendanceData.map(record => (
-                      <tr key={record.id} className="border-b border-border hover:bg-muted/30">
-                        <td className="py-4 px-6">
-                          <p className="font-medium text-foreground">{record.name}</p>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-muted-foreground">{record.department}</td>
-                        <td className="py-4 px-6 text-center">
-                          <Badge className="bg-green-500/10 text-green-700 border-green-500/20 border">
-                            {record.present}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <Badge className="bg-red-500/10 text-red-700 border-red-500/20 border">
-                            {record.absent}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20 border">
-                            {record.leave}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <Badge className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20 border">
-                            {record.late}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex items-center justify-center">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="font-bold text-primary">{record.attendanceRate}%</span>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
-     
+        <CardContent className="p-0 overflow-x-auto">
+
+          <table className="w-full">
+            <thead className="bg-muted/50 border-b">
+              <tr>
+                <th className="text-left p-4">Staff</th>
+                <th className="text-left p-4">E_mail</th>
+                <th className="text-left p-4">Date</th>
+                <th className="text-center p-4">Check In</th>
+                <th className="text-center p-4">Check Out</th>
+                <th className="text-center p-4">Status</th>
+                <th className="text-center p-4">Late (min)</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {attendance.map((record) => (
+                <tr key={record.id} className="border-b hover:bg-muted/30">
+
+                  {/* STAFF */}
+                  <td className="p-4 font-medium">
+                    {record.staff?.first_name || 'Unknown'}
+                  </td>
+                   <td className="p-4 font-medium">
+                    {record.staff?.email || 'Unknown'}
+                  </td>
+
+                  {/* DATE */}
+                  <td className="p-4 text-muted-foreground">
+                    {record.attendance_date}
+                  </td>
+
+                  {/* CHECK IN */}
+                  <td className="p-4 text-center">
+                    {record.check_in_time || '--'}
+                  </td>
+
+                  {/* CHECK OUT */}
+                  <td className="p-4 text-center">
+                    {record.check_out_time || '--'}
+                  </td>
+
+                  {/* STATUS */}
+                  <td className="p-4 text-center">
+                    <Badge className={`${getStatusColor(record.attendance_status)} border`}>
+                      {record.attendance_status}
+                    </Badge>
+                  </td>
+
+                  {/* LATE */}
+                  <td className="p-4 text-center">
+                    {record.minutes_late}
+                  </td>
+
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+
+        </CardContent>
+      </Card>
+
+    </main>
   );
 }

@@ -126,14 +126,7 @@ export default function MyCoursesPage() {
                   View Details
                 </button>
 
-                <button
-                  onClick={() =>
-                    (window.location.href = `/professor/roster/${course.id}`)
-                  }
-                  className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition text-sm font-medium"
-                >
-                  Manage Roster
-                </button>
+              
               </div>
             </div>
           ))}

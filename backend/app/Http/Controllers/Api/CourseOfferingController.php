@@ -46,50 +46,57 @@ public function professorSchedule()
         ->get();
 }
     // 🔹 CREATE (DEPARTMENT HEAD)
-public function store(Request $request)
-{
-    $request->validate([
-        'course_offering_id' => 'required|exists:course_offerings,id',
-        'material_title' => 'required|string',
-        'material_type' => 'required|in:Lecture Notes,Video,Article,Book,Code,Other',
-        'material_description' => 'nullable|string',
-        'week_number' => 'nullable|integer',
-        'file' => 'nullable|file|max:20480',
-        'external_link_url' => 'nullable|url',
-    ]);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'course_id' => 'required|exists:courses,id',
+            'semester_id' => 'required|exists:semesters,id',
+            'instructor_id' => 'required|exists:users,id',
+            'course_schedule_day' => 'required|string',
+            'class_start_time' => 'required',
+            'class_end_time' => 'required|after:class_start_time',
+            'capacity' => 'required|integer',
+            'classroom_location' => 'required|string',
+        ]);
 
-    if (!$request->hasFile('file') && !$request->external_link_url) {
-        return response()->json([
-            'message' => 'File or external link is required'
-        ], 422);
+        // 🔥 CHECK instructor role
+        $isProfessor = User::where('id', $validated['instructor_id'])
+            ->whereHas('roles', fn($q) => $q->where('role_code', 'professor'))
+            ->exists();
+
+        if (!$isProfessor) {
+            return response()->json(['error' => 'Instructor must be a professor'], 400);
+        }
+
+        // 🔥 CONFLICT DETECTION
+        $conflict = CourseOffering::where('semester_id', $validated['semester_id'])
+            ->where('course_schedule_day', $validated['course_schedule_day'])
+            ->where(function ($q) use ($validated) {
+                $q->whereBetween('class_start_time', [
+                    $validated['class_start_time'],
+                    $validated['class_end_time']
+                ])
+                ->orWhereBetween('class_end_time', [
+                    $validated['class_start_time'],
+                    $validated['class_end_time']
+                ]);
+            })
+            ->where(function ($q) use ($validated) {
+                $q->where('classroom_location', $validated['classroom_location'])
+                  ->orWhere('instructor_id', $validated['instructor_id']);
+            })
+            ->exists();
+
+        if ($conflict) {
+            return response()->json([
+                'error' => 'Schedule conflict detected (room or instructor busy)'
+            ], 409);
+        }
+
+        $offering = CourseOffering::create($validated);
+
+        return response()->json($offering, 201);
     }
-
-    $filePath = null;
-
-    // ✅ STORE FILE
-    if ($request->hasFile('file')) {
-        $filePath = $request->file('file')->store('materials', 'public');
-    }
-
-    $material = CourseMaterial::create([
-        'course_offering_id' => $request->course_offering_id,
-        'material_title' => $request->material_title,
-        'material_type' => $request->material_type,
-        'material_description' => $request->material_description,
-
-        // 🔥 FIXED HERE
-       'file_url' => $filePath,
-
-        'external_link_url' => $request->external_link_url,
-        'uploaded_by' => auth()->id(),
-        'upload_date' => now(),
-        'week_number' => $request->week_number,
-        'is_active' => true,
-    ]);
-
-    return response()->json($material, 201);
-}
-
     // 🔹 SHOW
     public function show($id)
     {

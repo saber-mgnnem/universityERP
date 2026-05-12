@@ -19,6 +19,12 @@ use App\Http\Controllers\Api\StudentPaymentController;
 use App\Http\Controllers\Api\AttendanceRecordController;
 use App\Http\Controllers\Api\CourseGradeController;
 
+use App\Http\Controllers\Api\EmploymentContractController;
+use App\Http\Controllers\Api\LeaveRequestController;
+use App\Http\Controllers\Api\JobPostingController;
+use App\Http\Controllers\Api\JobApplicationController;
+use App\Http\Controllers\Api\StaffAttendanceController;
+use App\Http\Controllers\Api\PayrollRecordController;
 
 
 /*
@@ -142,6 +148,57 @@ Route::middleware('role:admin')->group(function () {
     Route::delete('/semesters/{id}', [SemesterController::class, 'destroy']);
 });
 
+Route::middleware(['auth:api','role:admin,hr_manager'])->group(function () {
+ Route::apiResource(
+        'job-postings',
+        JobPostingController::class
+    );
+Route::get('/departments', function () {
+    return \App\Models\Department::all();
+});
+    Route::apiResource(
+        'job-applications',
+        JobApplicationController::class
+    );
+
+    Route::patch(
+        'job-applications/{id}/status',
+        [JobApplicationController::class, 'updateStatus']
+    );
+    Route::apiResource(
+        'employment-contracts',
+        EmploymentContractController::class
+    );
+       Route::apiResource(
+        'leave-requests',
+        LeaveRequestController::class
+    );
+    Route::patch(
+    'leave-requests/{id}/status',
+    [LeaveRequestController::class, 'updateStatus']);
+   Route::get('/staff-attendance', [StaffAttendanceController::class, 'index']);
+
+    Route::post('/staff-attendance/check-in', [StaffAttendanceController::class, 'checkIn']);
+    Route::post('/staff-attendance/check-out', [StaffAttendanceController::class, 'checkOut']);
+
+    Route::post('/staff-attendance/auto-absence', [StaffAttendanceController::class, 'autoMarkAbsence']);
+
+    Route::apiResource(
+    'payroll-records',
+    PayrollRecordController::class
+);
+// ================= DEPARTMENTS =================
+Route::apiResource(
+    'departments',
+    DepartmentController::class
+);
+
+// ================= DEPARTMENT BUDGETS =================
+Route::apiResource(
+    'department-budgets',
+    DepartmentBudgetController::class
+);
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -199,8 +256,16 @@ Route::middleware('role:student')->group(function () {
 
     });
 
-    // 🗑 Only admin delete
        
+
+Route::get('/public/jobs', [JobPostingController::class, 'publicJobs']);
+
+Route::get('/public/jobs/{id}', [JobPostingController::class, 'show']);
+
+Route::post('/public/job-applications', [
+    JobApplicationController::class,
+    'store'
+]);
 
 
 });

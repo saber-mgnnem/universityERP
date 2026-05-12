@@ -1,171 +1,471 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Download, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Plus,
+  Download,
+  Edit2,
+  Trash2,
+} from 'lucide-react';
+
+import API from '@/services/api';
+
+import FormModal from '@/components/dashboard/dep-form-modal';
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LayoutDashboard, Users, FileText, Calendar, UserPlus, Clock, Briefcase } from 'lucide-react';
-
-const sidebarItems = [
-  { label: "Dashboard", href: "/dashboard/hr", icon: LayoutDashboard },
-  { label: "Staff Profiles", href: "/dashboard/hr/staff", icon: Users },
-  { label: "Contracts", href: "/dashboard/hr/contracts", icon: FileText },
-  { label: "Leave Management", href: "/dashboard/hr/leave", icon: Calendar },
-  { label: "Recruitment", href: "/dashboard/hr/recruitment", icon: UserPlus },
-  { label: "Attendance", href: "/dashboard/hr/attendance", icon: Clock },
-  { label: "Departments", href: "/dashboard/hr/departments", icon: Briefcase },
-];
-
-const mockPayroll = [
-  { id: 1, employee: 'Ahmed Hassan', position: 'Senior Lecturer', salary: '$5,500', tax: '$825', net: '$4,675', payDate: '2024-02-15', status: 'Processed' },
-  { id: 2, employee: 'Fatima Ali', position: 'Lecturer', salary: '$4,200', tax: '$630', net: '$3,570', payDate: '2024-02-15', status: 'Processed' },
-  { id: 3, employee: 'Mohamed Ibrahim', position: 'Assistant Professor', salary: '$4,800', tax: '$720', net: '$4,080', payDate: '2024-02-15', status: 'Processed' },
-  { id: 4, employee: 'Amina Karim', position: 'Senior Admin', salary: '$3,500', tax: '$525', net: '$2,975', payDate: '2024-02-15', status: 'Pending' },
-];
-
-const payrollSummary = [
-  { month: 'February 2024', totalSalaries: '$45,000', totalDeductions: '$6,750', totalNet: '$38,250' },
-  { month: 'January 2024', totalSalaries: '$45,000', totalDeductions: '$6,750', totalNet: '$38,250' },
-  { month: 'December 2023', totalSalaries: '$45,000', totalDeductions: '$6,750', totalNet: '$38,250' },
-];
 
 export default function PayrollPage() {
-  const [selectedPayroll, setSelectedPayroll] = useState(null);
+
+  const [payrolls, setPayrolls] = useState([]);
+  const [staff, setStaff] = useState([]);
+
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
+
+  const [selectedPayroll, setSelectedPayroll] =
+    useState(null);
+
+  const authHeaders = {
+    headers: {
+      Authorization:
+        `Bearer ${localStorage.getItem('token')}`,
+    },
+  };
+
+  // ================= FETCH PAYROLLS =================
+  const fetchPayrolls = async () => {
+    const res = await API.get(
+      '/payroll-records',
+      authHeaders
+    );
+    console.log(res.data)
+    setPayrolls(res.data);
+  };
+
+  // ================= FETCH STAFF =================
+  const fetchStaff = async () => {
+    const res = await API.get(
+      '/staff-profiles',
+      authHeaders
+    );
+    setStaff(res.data);
+  };
+
+  useEffect(() => {
+    fetchPayrolls();
+    fetchStaff();
+  }, []);
+
+  // ================= CREATE =================
+  const handleCreate = async (data) => {
+    await API.post(
+      '/payroll-records',
+      data,
+      authHeaders
+    );
+
+    fetchPayrolls();
+
+    setIsModalOpen(false);
+  };
+
+  // ================= UPDATE =================
+  const handleUpdate = async (data) => {
+    await API.put(
+      `/payroll-records/${selectedPayroll.id}`,
+      data,
+      authHeaders
+    );
+
+    fetchPayrolls();
+
+    setSelectedPayroll(null);
+
+    setIsModalOpen(false);
+  };
+
+  // ================= DELETE =================
+  const handleDelete = async (id) => {
+
+    if (!confirm('Delete payroll?'))
+      return;
+
+    await API.delete(
+      `/payroll-records/${id}`,
+      authHeaders
+    );
+
+    fetchPayrolls();
+  };
+
+  // ================= STATUS COLOR =================
+  const getStatusColor = (status) => {
+
+    switch (status) {
+
+      case 'Paid':
+        return 'bg-green-500/10 text-green-700 border-green-500/20';
+
+      case 'Processed':
+        return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
+
+      case 'Failed':
+        return 'bg-red-500/10 text-red-700 border-red-500/20';
+
+      default:
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
+    }
+  };
+
+  // ================= FORM =================
+  const formFields = [
+
+    {
+      name: 'staff_id',
+      label: 'Staff',
+      type: 'select',
+      required: true,
+
+      options: staff.map(s => ({
+        value: s.id,
+        label: s.user.first_name,
+      })),
+    },
+
+    {
+      name: 'payroll_month',
+      label: 'Month',
+      type: 'number',
+      required: true,
+    },
+
+    {
+      name: 'payroll_year',
+      label: 'Year',
+      type: 'number',
+      required: true,
+    },
+
+    {
+      name: 'basic_salary',
+      label: 'Basic Salary',
+      type: 'number',
+      required: true,
+    },
+
+    {
+      name: 'allowances_total',
+      label: 'Allowances',
+      type: 'number',
+    },
+
+    {
+      name: 'deductions_total',
+      label: 'Deductions',
+      type: 'number',
+    },
+
+    {
+      name: 'income_tax',
+      label: 'Income Tax',
+      type: 'number',
+    },
+
+    {
+      name: 'provident_fund',
+      label: 'Provident Fund',
+      type: 'number',
+    },
+
+    {
+      name: 'professional_tax',
+      label: 'Professional Tax',
+      type: 'number',
+    },
+
+    {
+      name: 'health_insurance_deduction',
+      label: 'Health Insurance',
+      type: 'number',
+    },
+
+    {
+      name: 'other_deductions',
+      label: 'Other Deductions',
+      type: 'number',
+    },
+
+    {
+      name: 'payment_status',
+      label: 'Status',
+      type: 'select',
+
+      options: [
+        'Pending',
+        'Processed',
+        'Paid',
+        'Failed'
+      ].map(v => ({
+        value: v,
+        label: v,
+      })),
+    },
+
+    {
+      name: 'payment_date',
+      label: 'Payment Date',
+      type: 'date',
+    },
+
+    {
+      name: 'payment_method',
+      label: 'Payment Method',
+      type: 'text',
+    },
+
+    {
+      name: 'transaction_reference',
+      label: 'Transaction Ref',
+      type: 'text',
+    },
+
+    {
+      name: 'remarks',
+      label: 'Remarks',
+      type: 'textarea',
+    },
+  ];
+
+  // ================= TOTALS =================
+  const totalPayroll =
+    payrolls.reduce(
+      (sum, p) => sum + Number(p.net_salary || 0),
+      0
+    );
 
   return (
 
-        <main className="p-6 space-y-6">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Payroll Management</h1>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Process Payroll
-            </Button>
+    <main className="p-6 space-y-6">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+
+        <h1 className="text-3xl font-bold">
+          Payroll Management
+        </h1>
+
+        <Button
+          onClick={() => {
+            setSelectedPayroll(null);
+            setIsModalOpen(true);
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Process Payroll
+        </Button>
+
+      </div>
+
+      {/* STATS */}
+      <div className="grid sm:grid-cols-4 gap-4">
+
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              Total Payroll
+            </p>
+
+            <p className="text-3xl font-bold">
+              ${totalPayroll.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              Employees
+            </p>
+
+            <p className="text-3xl font-bold">
+              {payrolls.length}
+            </p>
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* TABLE */}
+      <Card>
+
+        <CardHeader>
+          <CardTitle>
+            Payroll Records
+          </CardTitle>
+
+          <CardDescription>
+            Staff salary management
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-0">
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full">
+
+              <thead className="border-b bg-muted/50">
+
+                <tr>
+
+                  <th className="text-left p-4">
+                    Staff
+                  </th>
+
+                  <th className="text-left p-4">
+                    Month
+                  </th>
+
+                  <th className="text-left p-4">
+                    Gross
+                  </th>
+
+                  <th className="text-left p-4">
+                    Net
+                  </th>
+
+                  <th className="text-left p-4">
+                    Status
+                  </th>
+
+                  <th className="text-left p-4">
+                    Actions
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {payrolls.map(record => (
+
+                  <tr
+                    key={record.id}
+                    className="border-b hover:bg-muted/30"
+                  >
+
+                    <td className="p-4 font-medium">
+{record.staff?.user
+  ? `${record.staff.user.first_name} ${record.staff.user.last_name}`
+  : 'Unknown'}                    </td>
+
+                    <td className="p-4">
+                      {record.payroll_month}/
+                      {record.payroll_year}
+                    </td>
+
+                    <td className="p-4">
+                      ${record.gross_salary}
+                    </td>
+
+                    <td className="p-4 font-bold text-green-600">
+                      ${record.net_salary}
+                    </td>
+
+                    <td className="p-4">
+
+                      <Badge
+                        className={`${getStatusColor(record.payment_status)} border`}
+                      >
+                        {record.payment_status}
+                      </Badge>
+
+                    </td>
+
+                    <td className="p-4 flex gap-2">
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+
+                        onClick={() => {
+                          setSelectedPayroll({
+                            ...record,
+
+                            staff_id:
+                              record.staff_id?.toString(),
+                          });
+
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+
+                        onClick={() =>
+                          handleDelete(record.id)
+                        }
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+
+                    </td>
+
+                  </tr>
+
+                ))}
+
+              </tbody>
+
+            </table>
+
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid sm:grid-cols-4 gap-4">
-            <Card className="border-border">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground mb-2">Total Payroll</p>
-                <p className="text-3xl font-bold">$45K</p>
-                <p className="text-xs text-muted-foreground mt-2">This month</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground mb-2">Total Deductions</p>
-                <p className="text-3xl font-bold">$6.7K</p>
-                <p className="text-xs text-muted-foreground mt-2">Tax & Benefits</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground mb-2">Net Payroll</p>
-                <p className="text-3xl font-bold">$38.2K</p>
-                <p className="text-xs text-muted-foreground mt-2">To Employees</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground mb-2">Employees</p>
-                <p className="text-3xl font-bold">{mockPayroll.length}</p>
-                <p className="text-xs text-muted-foreground mt-2">On payroll</p>
-              </CardContent>
-            </Card>
-          </div>
+        </CardContent>
 
-          {/* Current Payroll */}
-          <Card className="border-border">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Current Payroll - February 2024</CardTitle>
-                  <CardDescription>Employee salary breakdown and deductions</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-border bg-muted/50">
-                    <tr>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Employee</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Position</th>
-                      <th className="text-right py-3 px-6 font-medium text-muted-foreground">Gross Salary</th>
-                      <th className="text-right py-3 px-6 font-medium text-muted-foreground">Deductions</th>
-                      <th className="text-right py-3 px-6 font-medium text-muted-foreground">Net Salary</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockPayroll.map(item => (
-                      <tr key={item.id} className="border-b border-border hover:bg-muted/30">
-                        <td className="py-4 px-6 font-medium text-foreground">{item.employee}</td>
-                        <td className="py-4 px-6 text-sm text-muted-foreground">{item.position}</td>
-                        <td className="py-4 px-6 text-right font-medium">{item.salary}</td>
-                        <td className="py-4 px-6 text-right text-red-600">{item.tax}</td>
-                        <td className="py-4 px-6 text-right font-bold text-green-600">{item.net}</td>
-                        <td className="py-4 px-6">
-                          <Badge className={item.status === 'Processed' ? 'bg-green-500/10 text-green-700 border-green-500/20 border' : 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20 border'}>
-                            {item.status}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-6">
-                          <Button size="sm" variant="ghost">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+      </Card>
 
-          {/* Payroll History */}
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle>Payroll History</CardTitle>
-              <CardDescription>Previous payroll cycles</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {payrollSummary.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30">
-                  <div>
-                    <p className="font-semibold text-foreground">{item.month}</p>
-                    <div className="grid grid-cols-3 gap-6 text-sm mt-2">
-                      <div>
-                        <p className="text-muted-foreground">Total Salaries</p>
-                        <p className="font-medium text-foreground">{item.totalSalaries}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Deductions</p>
-                        <p className="font-medium text-red-600">{item.totalDeductions}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Net Payroll</p>
-                        <p className="font-medium text-green-600">{item.totalNet}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </main>
-      
+      {/* MODAL */}
+      <FormModal
+        isOpen={isModalOpen}
+
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedPayroll(null);
+        }}
+
+        title={
+          selectedPayroll
+            ? 'Update Payroll'
+            : 'Create Payroll'
+        }
+
+        fields={formFields}
+
+        initialData={selectedPayroll}
+
+        onSubmit={
+          selectedPayroll
+            ? handleUpdate
+            : handleCreate
+        }
+      />
+
+    </main>
   );
 }

@@ -1,187 +1,425 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Download, AlertCircle } from 'lucide-react';
-import { DashboardHeader } from '@/components/dashboard/header';
-import { DashboardSidebar } from '@/components/dashboard/sidebar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Download,
+  AlertCircle,
+} from 'lucide-react';
+
+import API from '@/services/api';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LayoutDashboard, Users, FileText, Calendar, UserPlus, Clock, Briefcase } from 'lucide-react';
 
-const sidebarItems = [
-  { label: "Dashboard", href: "/dashboard/hr", icon: LayoutDashboard },
-  { label: "Staff Profiles", href: "/dashboard/hr/staff", icon: Users },
-  { label: "Contracts", href: "/dashboard/hr/contracts", icon: FileText },
-  { label: "Leave Management", href: "/dashboard/hr/leave", icon: Calendar },
-  { label: "Recruitment", href: "/dashboard/hr/recruitment", icon: UserPlus },
-  { label: "Attendance", href: "/dashboard/hr/attendance", icon: Clock },
-  { label: "Departments", href: "/dashboard/hr/departments", icon: Briefcase },
-];
-
-const contractsData = [
-  {
-    id: 1,
-    employeeName: "Prof. Robert Taylor",
-    type: "Full-time",
-    department: "Engineering",
-    position: "Senior Professor",
-    startDate: "Jan 15, 2020",
-    endDate: "Feb 28, 2026",
-    salary: "$120,000",
-    status: "Expiring Soon",
-    daysUntilExpiry: 44,
-  },
-  {
-    id: 2,
-    employeeName: "Dr. Amanda White",
-    type: "Part-time",
-    department: "Research",
-    position: "Research Associate",
-    startDate: "Mar 10, 2021",
-    endDate: "Mar 15, 2026",
-    salary: "$65,000",
-    status: "Active",
-    daysUntilExpiry: 59,
-  },
-  {
-    id: 3,
-    employeeName: "Michael Johnson",
-    type: "Contract",
-    department: "IT",
-    position: "System Administrator",
-    startDate: "Sep 01, 2022",
-    endDate: "Jan 31, 2026",
-    salary: "$55,000",
-    status: "Expiring Soon",
-    daysUntilExpiry: 16,
-  },
-  {
-    id: 4,
-    employeeName: "Lisa Anderson",
-    type: "Full-time",
-    department: "Administration",
-    position: "Administrative Manager",
-    startDate: "Jun 15, 2019",
-    endDate: "Jun 15, 2026",
-    salary: "$70,000",
-    status: "Active",
-    daysUntilExpiry: 122,
-  },
-  {
-    id: 5,
-    employeeName: "Dr. James Wilson",
-    type: "Full-time",
-    department: "Sciences",
-    position: "Professor",
-    startDate: "Jan 01, 2018",
-    endDate: "Dec 31, 2025",
-    salary: "$110,000",
-    status: "Expired",
-    daysUntilExpiry: -44,
-  },
-];
+import FormModal from '@/components/dashboard/dep-form-modal';
 
 export default function ContractsPage() {
+  const [contracts, setContracts] = useState([]);
+  const [staffProfiles, setStaffProfiles] = useState([]);
+
   const [filterStatus, setFilterStatus] = useState('All');
 
-  const filteredContracts = contractsData.filter(contract => {
-    if (filterStatus === 'All') return true;
-    return contract.status === filterStatus;
-  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Expiring Soon': return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
-      case 'Expired': return 'bg-red-500/10 text-red-700 border-red-500/20';
-      case 'Active': return 'bg-green-500/10 text-green-700 border-green-500/20';
-      default: return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
+  // ✅ edit mode
+  const [editingContract, setEditingContract] = useState(null);
+
+  // ================= FETCH CONTRACTS =================
+  const fetchContracts = async () => {
+    try {
+      const res = await API.get('/employment-contracts');
+      setContracts(res.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
+  // ================= FETCH STAFF =================
+  const fetchStaff = async () => {
+    try {
+      const res = await API.get('/staff-profiles');
+      setStaffProfiles(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts();
+    fetchStaff();
+  }, []);
+
+  // ================= CREATE / UPDATE =================
+  const handleSubmitContract = async (formData) => {
+    try {
+      // ✅ UPDATE
+      if (editingContract) {
+        await API.put(
+          `/employment-contracts/${editingContract.id}`,
+          {
+            staff_id: formData.staff_id,
+            contract_start_date: formData.contract_start_date,
+            contract_end_date: formData.contract_end_date,
+            contract_type: formData.contract_type,
+            salary_amount: formData.salary_amount,
+            salary_frequency: formData.salary_frequency,
+            benefits_description: formData.benefits_description,
+            renewal_date: formData.renewal_date,
+            contract_status: formData.contract_status,
+          }
+        );
+      }
+
+      // ✅ CREATE
+      else {
+        await API.post('/employment-contracts', {
+          staff_id: formData.staff_id,
+          contract_start_date: formData.contract_start_date,
+          contract_end_date: formData.contract_end_date,
+          contract_type: formData.contract_type,
+          salary_amount: formData.salary_amount,
+          salary_frequency: formData.salary_frequency,
+          benefits_description: formData.benefits_description,
+          renewal_date: formData.renewal_date,
+          contract_status: formData.contract_status,
+        });
+      }
+
+      fetchContracts();
+
+      setIsModalOpen(false);
+      setEditingContract(null);
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= DELETE =================
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this contract?')) return;
+
+    try {
+      await API.delete(`/employment-contracts/${id}`);
+      fetchContracts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= OPEN EDIT =================
+  const handleEdit = (contract) => {
+    setEditingContract({
+      id: contract.id,
+      staff_id: contract.staff_id,
+      contract_start_date: contract.contract_start_date,
+      contract_end_date: contract.contract_end_date,
+      contract_type: contract.contract_type,
+      salary_amount: contract.salary_amount,
+      salary_frequency: contract.salary_frequency,
+      benefits_description: contract.benefits_description,
+      renewal_date: contract.renewal_date,
+      contract_status: contract.contract_status,
+    });
+
+    setIsModalOpen(true);
+  };
+
+  // ================= FILTER =================
+  const filteredContracts = contracts.filter((contract) => {
+    if (filterStatus === 'All') return true;
+    return contract.contract_status === filterStatus;
+  });
+
+  // ================= STATUS COLOR =================
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Expired':
+        return 'bg-red-500/10 text-red-700 border-red-500/20';
+
+      case 'Renewed':
+        return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
+
+      case 'Active':
+        return 'bg-green-500/10 text-green-700 border-green-500/20';
+
+      default:
+        return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
+    }
+  };
+
+  // ================= FORM FIELDS =================
+  const formFields = [
+    {
+      name: 'staff_id',
+      label: 'Staff Member',
+      type: 'select',
+      required: true,
+      options: staffProfiles.map((s) => ({
+        value: s.id,
+        label:
+          s.user?.first_name + ' ' + s.user?.last_name,
+      })),
+    },
+
+    {
+      name: 'contract_start_date',
+      label: 'Start Date',
+      type: 'date',
+      required: true,
+    },
+
+    {
+      name: 'contract_end_date',
+      label: 'End Date',
+      type: 'date',
+    },
+
+    {
+      name: 'contract_type',
+      label: 'Contract Type',
+      type: 'select',
+      options: [
+        { value: 'Permanent', label: 'Permanent' },
+        { value: 'Temporary', label: 'Temporary' },
+        { value: 'Fixed-Term', label: 'Fixed-Term' },
+        { value: 'Casual', label: 'Casual' },
+      ],
+    },
+
+    {
+      name: 'salary_amount',
+      label: 'Salary',
+      type: 'number',
+    },
+
+    {
+      name: 'salary_frequency',
+      label: 'Salary Frequency',
+      type: 'select',
+      options: [
+        { value: 'Monthly', label: 'Monthly' },
+        { value: 'Quarterly', label: 'Quarterly' },
+        { value: 'Annually', label: 'Annually' },
+      ],
+    },
+
+    {
+      name: 'contract_status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'Active', label: 'Active' },
+        { value: 'Expired', label: 'Expired' },
+        { value: 'Renewed', label: 'Renewed' },
+        { value: 'Terminated', label: 'Terminated' },
+      ],
+    },
+
+    {
+      name: 'benefits_description',
+      label: 'Benefits',
+      type: 'textarea',
+    },
+
+    {
+      name: 'renewal_date',
+      label: 'Renewal Date',
+      type: 'date',
+    },
+  ];
+
   return (
-    
-        <main className="p-6 space-y-6">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Employment Contracts</h1>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Create Contract
+    <main className="p-6 space-y-6">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">
+          Employment Contracts
+        </h1>
+
+        <Button
+          className="flex items-center gap-2"
+          onClick={() => {
+            setEditingContract(null);
+            setIsModalOpen(true);
+          }}
+        >
+          <Plus className="h-5 w-5" />
+          Create Contract
+        </Button>
+      </div>
+
+      {/* FILTER */}
+      <div className="flex gap-2">
+        {['All', 'Active', 'Expired', 'Renewed'].map(
+          (status) => (
+            <Button
+              key={status}
+              variant={
+                filterStatus === status
+                  ? 'default'
+                  : 'outline'
+              }
+              onClick={() => setFilterStatus(status)}
+            >
+              {status}
             </Button>
-          </div>
+          )
+        )}
+      </div>
 
-          {/* Filter */}
-          <div className="flex gap-2">
-            {['All', 'Active', 'Expiring Soon', 'Expired'].map(status => (
-              <Button
-                key={status}
-                variant={filterStatus === status ? 'default' : 'outline'}
-                onClick={() => setFilterStatus(status)}
-              >
-                {status}
-              </Button>
-            ))}
-          </div>
+      {/* TABLE */}
+      <Card className="border-border overflow-hidden">
+        <CardHeader>
+          <CardTitle>Contracts</CardTitle>
 
-          {/* Contracts Table */}
-          <Card className="border-border overflow-hidden">
-            <CardHeader>
-              <CardTitle>Active Contracts</CardTitle>
-              <CardDescription>Manage all employee contracts</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-border bg-muted/50">
-                    <tr>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Employee</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Type</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Department</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">End Date</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left py-3 px-6 font-medium text-muted-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredContracts.map(contract => (
-                      <tr key={contract.id} className="border-b border-border hover:bg-muted/30">
-                        <td className="py-4 px-6">
-                          <div>
-                            <p className="font-medium text-foreground">{contract.employeeName}</p>
-                            <p className="text-sm text-muted-foreground">{contract.position}</p>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-sm">{contract.type}</td>
-                        <td className="py-4 px-6 text-sm">{contract.department}</td>
-                        <td className="py-4 px-6 text-sm">{contract.endDate}</td>
-                        <td className="py-4 px-6">
-                          <Badge className={`${getStatusColor(contract.status)} border`}>
-                            {contract.status === 'Expiring Soon' && <AlertCircle className="w-3 h-3 mr-1" />}
-                            {contract.status}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex gap-2">
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
-      
+          <CardDescription>
+            Manage employee contracts
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+
+            <table className="w-full">
+              <thead className="border-b bg-muted/50">
+                <tr>
+                  <th className="text-left py-3 px-6">
+                    Employee
+                  </th>
+
+                  <th className="text-left py-3 px-6">
+                    Type
+                  </th>
+
+                  <th className="text-left py-3 px-6">
+                    Salary
+                  </th>
+
+                  <th className="text-left py-3 px-6">
+                    End Date
+                  </th>
+
+                  <th className="text-left py-3 px-6">
+                    Status
+                  </th>
+
+                  <th className="text-left py-3 px-6">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredContracts.map((contract) => (
+                  <tr
+                    key={contract.id}
+                    className="border-b hover:bg-muted/30"
+                  >
+                    <td className="py-4 px-6">
+                      <div>
+                        <p className="font-medium">
+                          {contract.staff?.user?.first_name}{' '}
+                          {contract.staff?.user?.last_name}
+                        </p>
+
+                        <p className="text-sm text-muted-foreground">
+                          {
+                            contract.staff?.designation_title
+                          }
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="py-4 px-6">
+                      {contract.contract_type}
+                    </td>
+
+                    <td className="py-4 px-6">
+                      ${contract.salary_amount}
+                    </td>
+
+                    <td className="py-4 px-6">
+                      {contract.contract_end_date}
+                    </td>
+
+                    <td className="py-4 px-6">
+                      <Badge
+                        className={`${getStatusColor(
+                          contract.contract_status
+                        )} border`}
+                      >
+                        {contract.contract_status}
+                      </Badge>
+                    </td>
+
+                    {/* ✅ ACTIONS */}
+                    <td className="py-4 px-6">
+                      <div className="flex gap-2">
+
+                        {/* EDIT */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() =>
+                            handleEdit(contract)
+                          }
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+
+                        {/* DELETE */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() =>
+                            handleDelete(contract.id)
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* MODAL */}
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingContract(null);
+        }}
+        title={
+          editingContract
+            ? 'Update Contract'
+            : 'Create Contract'
+        }
+        fields={formFields}
+        initialData={editingContract}
+        onSubmit={handleSubmitContract}
+      />
+    </main>
   );
 }
