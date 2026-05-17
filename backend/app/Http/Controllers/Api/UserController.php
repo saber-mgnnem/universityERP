@@ -16,6 +16,31 @@ class UserController extends Controller
         return User::with('roles')->get();
     }
 
+public function students()
+{
+    return User::with('studentProfile')
+        ->whereHas('roles', function ($q) {
+            $q->where('role_name', 'student');
+        })
+        ->select('id', 'first_name', 'last_name', 'email')
+        ->get()
+        ->map(function ($user) {
+
+            return [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+
+                // 👇 status logic
+                'is_assigned_to_department' =>
+                    !is_null(optional($user->studentProfile)->department_id),
+
+                'department_id' =>
+                    optional($user->studentProfile)->department_id,
+            ];
+        });
+}
     // 🔹 CREATE USER (ADMIN ONLY - STAFF, HR, etc.)
     public function store(Request $request)
     {

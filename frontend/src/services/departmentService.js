@@ -1,7 +1,7 @@
 import API from "./api";
 
 export const getDepartments = async () => {
-  const res = await API.get("/departments");
+  const res = await API.get("/dedepartments");
   return res.data;
 };
 

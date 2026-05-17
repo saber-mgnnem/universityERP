@@ -11,6 +11,10 @@ export const createCourse = async (data) => {
   const res = await API.post("/courses", data);
   return res.data;
 };
+export const updateCourse = async (id, data) => {
+  const res = await API.put(`/courses/${id}`, data);
+  return res.data;
+};
 
 // DELETE
 export const deleteCourse = async (id) => {

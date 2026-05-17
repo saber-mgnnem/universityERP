@@ -19,9 +19,21 @@ class CourseGradeController extends Controller
         })
         ->get();
 }
+public function myGrades()
+{
+    return CourseGrade::with([
+        'enrollment.courseOffering.course',
+        'enrollment.courseOffering.semester',
+    ])
+    ->whereHas('enrollment', function ($q) {
 
+        $q->where('student_id', auth()->id());
+
+    })
+    ->get();
+}
     // ================= CREATE / UPDATE GRADE =================
-   public function store(Request $request)
+public function store(Request $request)
 {
     $request->validate([
         'enrollment_id' => 'required|exists:enrollments,id',
@@ -30,18 +42,55 @@ class CourseGradeController extends Controller
         'final_exam_marks' => 'nullable|numeric',
     ]);
 
+    $ca = $request->continuous_assessment_marks ?? 0;
+    $mid = $request->midterm_exam_marks ?? 0;
+    $final = $request->final_exam_marks ?? 0;
+
+    $total = $ca + $mid + $final;
+
+    // GPA + Letter
+    if ($total >= 90) {
+        $gradeLetter = 'A';
+        $gpa = 4.0;
+        $status = 'Pass';
+    } elseif ($total >= 80) {
+        $gradeLetter = 'B';
+        $gpa = 3.0;
+        $status = 'Pass';
+    } elseif ($total >= 70) {
+        $gradeLetter = 'C';
+        $gpa = 2.0;
+        $status = 'Pass';
+    } elseif ($total >= 60) {
+        $gradeLetter = 'D';
+        $gpa = 1.0;
+        $status = 'Pass';
+    } else {
+        $gradeLetter = 'F';
+        $gpa = 0.0;
+        $status = 'Fail';
+    }
+
     $grade = CourseGrade::create([
         'enrollment_id' => $request->enrollment_id,
-        'continuous_assessment_marks' => $request->ca ?? 0,
-        'midterm_exam_marks' => $request->midterm ?? 0,
-        'final_exam_marks' => $request->final ?? 0,
+
+        'continuous_assessment_marks' => $ca,
+        'midterm_exam_marks' => $mid,
+        'final_exam_marks' => $final,
+
+        'total_marks_obtained' => $total,
+
+        'gpa_points' => $gpa,
+
+        'letter_grade' => $gradeLetter,
+
+        'grade_status' => $status,
+
         'graded_by' => auth()->id(),
-        'grade_status' => 'Pending',
     ]);
 
     return response()->json($grade, 201);
 }
-
     // ================= UPDATE =================
     public function update(Request $request, $id)
     {

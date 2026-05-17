@@ -13,16 +13,21 @@ use Illuminate\Support\Facades\Auth;
 class EnrollmentController extends Controller
 {
     // 🔹 GET MY ENROLLMENTS
-public function index()
-{
-    return Enrollment::with([
-        'courseOffering.course',
-        'courseOffering.instructor',
-        'courseOffering.semester'
-    ])
-    ->where('student_id', auth()->id())
-    ->get();
-}
+   public function index()
+    {
+        $enrollments = Enrollment::with([
+            'courseOffering.course',
+            'courseOffering.instructor',
+            'courseOffering.semester'
+        ])
+        ->where('student_id', auth()->id())
+        ->get();
+
+        // return only course offering data
+        return $enrollments->map(function ($enrollment) {
+            return $enrollment->courseOffering;
+        });
+    }
 
     // 🔹 ENROLL
 public function store(Request $request)
@@ -69,17 +74,20 @@ public function store(Request $request)
 }
 
     // 🔹 DROP COURSE
-    public function destroy($id)
-    {
-        $enrollment = Enrollment::where('id', $id)
-            ->where('student_id', Auth::id())
-            ->firstOrFail();
+   public function destroy($offeringId)
+{
+    $enrollment = Enrollment::where('course_offering_id', $offeringId)
+        ->where('student_id', Auth::id())
+        ->firstOrFail();
 
-        // 🔥 decrement counter
-        $enrollment->offering->decrement('enrolled_students');
+    // decrement enrolled students
+    CourseOffering::where('id', $offeringId)
+        ->decrement('enrolled_students');
 
-        $enrollment->delete();
+    $enrollment->delete();
 
-        return response()->json(['message' => 'Dropped']);
-    }
+    return response()->json([
+        'message' => 'Dropped successfully'
+    ]);
+}
 }

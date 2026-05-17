@@ -5,21 +5,26 @@ import { DashboardHeader } from "@/components/dashboard/header"
 import {
   LayoutDashboard,
   Users,
-  Settings,
   BarChart3,
-  Shield,
-  Database,
   FileText,
+  UserPlus,
+  Calendar,
+  DollarSign,
+  Building2
 } from "lucide-react"
 
 const sidebarItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "User Management", href: "/admin/users", icon: Users },
-  { label: "System Settings", href: "/admin/settings", icon: Settings },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { label: "Security", href: "/admin/security", icon: Shield },
-  { label: "Database", href: "/admin/database", icon: Database },
-  { label: "Logs", href: "/admin/logs", icon: FileText },
+  { label: "Departments", href: "/admin/departments", icon: Building2 },
+  { label: "Performance Reports", href: "/rector/reports", icon: FileText },
+  { label: "Budget Overview", href: "/rector/budget", icon: DollarSign },
+  { label: "Attendance", href: "/professor/attendance", icon: Users },
+  { label: "Leave Management", href: "/professor/leave", icon: Calendar },
+  { label: "Contracts", href: "/hr/contracts", icon: FileText },
+  { label: "Recruitment", href: "/hr/recruitment", icon: UserPlus },
+
 ]
 
 export default function AdminLayout() {

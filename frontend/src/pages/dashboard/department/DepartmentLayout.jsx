@@ -17,9 +17,7 @@ const sidebarItems = [
   { label: "Dashboard", href: "/department", icon: LayoutDashboard },
   { label: "Courses", href: "/department/courses", icon: BookOpen },
   { label: "Course Offering", href: "/department/CourseOffering", icon: Users },
-  { label: "Analytics", href: "/department/analytics", icon: BarChart3 },
   { label: "student", href: "/department/student", icon: Users },
-  { label: "Reports", href: "/department/reports", icon: FileText },
 ]
 
 

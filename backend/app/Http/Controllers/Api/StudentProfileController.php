@@ -16,7 +16,43 @@ class StudentProfileController extends Controller
         return StudentProfile::with(['user', 'department'])->get();
     }
     // 🔹 GET myprofile
+public function assignDepartment(Request $request, $userId)
+{
+    $request->validate([
+        'department_id' => 'required|exists:departments,id'
+    ]);
 
+    // ✅ try to find existing profile
+    $studentProfile = StudentProfile::where('user_id', $userId)->first();
+
+    // ✅ if not found → create new profile
+    if (!$studentProfile) {
+        $studentProfile = StudentProfile::create([
+            'user_id' => $userId,
+            'department_id' => $request->department_id,
+
+            // required fields in your table → give safe defaults
+            'student_id' => 'STU-' . $userId, // or generate properly
+            'enrollment_date' => now(),
+            'current_semester' => 1,
+            'current_gpa' => 0,
+            'cumulative_gpa' => 0,
+            'academic_standing' => 'Good',
+            'total_credits_earned' => 0,
+            'is_international_student' => false,
+            'is_active' => true,
+        ]);
+    } else {
+        // ✅ update existing
+        $studentProfile->department_id = $request->department_id;
+        $studentProfile->save();
+    }
+
+    return response()->json([
+        'message' => 'Department assigned successfully',
+        'data' => $studentProfile
+    ]);
+}
     public function myProfile()
     {
         $user = auth()->user();

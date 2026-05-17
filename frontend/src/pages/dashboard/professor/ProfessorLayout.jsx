@@ -18,6 +18,8 @@ const sidebarItems = [
   { label: "Attendance", href: "/professor/attendance", icon: Users },
   { label: "Schedule", href: "/professor/schedule", icon: Calendar },
   { label: "Materials", href: "/professor/materials", icon: FileText },
+  { label: "Leave Management", href: "/professor/leave", icon: Calendar },
+
 ]
 
 export default function ProfessorLayout() {

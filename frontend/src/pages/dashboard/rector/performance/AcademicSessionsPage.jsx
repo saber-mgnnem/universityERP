@@ -54,11 +54,11 @@ export default function AcademicSessionsPage() {
     { key: 'session_start_date', label: 'Start' },
     { key: 'session_end_date', label: 'End' },
     { key: 'semester_count', label: 'Semesters' },
-    {
-      key: 'is_current_session',
-      label: 'Current',
-      render: (val) => val ? 'Yes' : 'No'
-    },
+      {
+    key: 'is_current_session',
+    label: 'Current',
+    render: (val) => Number(val) === 1 ? 'Yes' : 'No'
+  },
   ];
 
   // 🧾 FORM

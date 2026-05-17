@@ -75,12 +75,17 @@ export default function MyCoursesPage() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-
+                 <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    <span className="text-sm font-semibold text-primary">
+                      {course.course?.course_title}
+                    </span>
+                  </div> 
                   {/* COURSE CODE */}
                   <div className="flex items-center gap-2 mb-2">
                     <BookOpen className="h-5 w-5 text-primary" />
                     <span className="text-sm font-semibold text-primary">
-                      {course.course?.course_code}
+                     Code Cours:  {course.course?.course_code}
                     </span>
                   </div>
 

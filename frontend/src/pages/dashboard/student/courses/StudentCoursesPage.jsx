@@ -37,7 +37,8 @@ export default function StudentCoursesPage() {
   // ---------------- FETCH COURSES + MATERIALS ----------------
   const fetchCourses = async () => {
     try {
-      const res = await API.get('/student-offerings');
+      const res = await API.get('/enrollments');
+      console.log(res.data)
       const data = res.data || [];
 
       setCourses(data);

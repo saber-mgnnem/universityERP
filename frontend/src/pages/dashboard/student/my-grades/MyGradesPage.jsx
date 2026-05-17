@@ -1,134 +1,124 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import API from '@/services/api';
+import DataTable from '@/components/dashboard/DataTable';
 
-export default function DataTable({
-  columns,
-  data = [],   // ✅ DEFAULT SAFE ARRAY
-  actions,
-  searchable = true,
-  pagination = true
-}) {
-  const [sortConfig, setSortConfig] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+export default function StudentGradesPage() {
 
-  const itemsPerPage = 10;
+  const [grades, setGrades] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // =========================
-  // SAFE ARRAY GUARANTEE
-  // =========================
-  const safeData = Array.isArray(data) ? data : [];
+  useEffect(() => {
+    fetchGrades();
+  }, []);
 
-  // =========================
-  // SAFE VALUE
-  // =========================
-  const safeValue = (val) => {
-    if (val === null || val === undefined) return '—';
-    if (typeof val === 'object') {
-      return (
-        val.name ||
-        val.title ||
-        val.semester_name ||
-        val.course_title ||
-        val.course_code ||
-        '—'
-      );
+  const fetchGrades = async () => {
+
+    try {
+
+      const res = await API.get('/student/grades');
+       console.log(res.data)
+      setGrades(res.data || []);
+
+    } catch (err) {
+
+      console.error(err);
+
+    } finally {
+
+      setLoading(false);
+
     }
-    return val;
+
   };
 
-  // =========================
-  // FILTER
-  // =========================
-  const filteredData = useMemo(() => {
-    if (!searchable || !searchTerm) return safeData;
+  const columns = [
 
-    return safeData.filter((item) =>
-      columns.some((col) =>
-        String(safeValue(item[col.key]))
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
+    {
+      key: 'course',
+      label: 'Course',
+      render: (_, row) => (
+        <>
+          {row.enrollment.course_offering.course.course_code}
+          {' - '}
+          {row.enrollment?.course_offering?.course?.course_title}
+        </>
       )
-    );
-  }, [safeData, searchTerm, columns, searchable]);
+    },
 
-  // =========================
-  // SORT
-  // =========================
-  const sortedData = useMemo(() => {
-    let sorted = [...filteredData]; // ✅ NOW SAFE
+    {
+      key: 'continuous_assessment_marks',
+      label: 'CA'
+    },
 
-    if (sortConfig) {
-      sorted.sort((a, b) => {
-        const aValue = safeValue(a[sortConfig.key]);
-        const bValue = safeValue(b[sortConfig.key]);
+    {
+      key: 'midterm_exam_marks',
+      label: 'Midterm'
+    },
 
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
+    {
+      key: 'final_exam_marks',
+      label: 'Final'
+    },
+
+    {
+      key: 'total_marks_obtained',
+      label: 'Total'
+    },
+
+    {
+      key: 'letter_grade',
+      label: 'Grade'
+    },
+
+    {
+      key: 'gpa_points',
+      label: 'GPA'
+    },
+
+    {
+      key: 'grade_status',
+      label: 'Status',
+      render: (value) => (
+        <span
+          className={`px-2 py-1 rounded text-white ${
+            value === 'Pass'
+              ? 'bg-green-600'
+              : 'bg-red-600'
+          }`}
+        >
+          {value}
+        </span>
+      )
     }
 
-    return sorted;
-  }, [filteredData, sortConfig]);
+  ];
 
-  // =========================
-  // PAGINATION
-  // =========================
-  const paginatedData = useMemo(() => {
-    if (!pagination) return sortedData;
+  if (loading) {
 
-    const start = (currentPage - 1) * itemsPerPage;
-    return sortedData.slice(start, start + itemsPerPage);
-  }, [sortedData, currentPage, pagination]);
+    return (
+      <div className="p-8">
+        Loading...
+      </div>
+    );
 
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  }
 
   return (
-    <div className="space-y-4">
 
-      {searchable && (
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-5 w-5" />
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search..."
-            className="w-full pl-10 p-2 border rounded"
-          />
-        </div>
-      )}
+    <main className="p-8 space-y-6">
 
-      <table className="w-full border">
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key} className="p-2 border">
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
+      <h1 className="text-3xl font-bold">
+        My Grades
+      </h1>
 
-        <tbody>
-          {paginatedData.map((row, i) => (
-            <tr key={i} className="border-t">
+      <DataTable
+        columns={columns}
+        data={grades}
+      />
 
-              {columns.map((col) => (
-                <td key={col.key} className="p-2">
-                  {col.render
-                    ? col.render(row[col.key], row)
-                    : safeValue(row[col.key])}
-                </td>
-              ))}
+    </main>
 
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-    </div>
   );
 }

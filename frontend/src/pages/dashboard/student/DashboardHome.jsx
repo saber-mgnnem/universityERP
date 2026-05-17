@@ -1,8 +1,20 @@
+'use client';
 
-import { StatCard } from "@/components/dashboard/stat-card"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState, useMemo } from "react";
+import API from "@/services/api";
+import { useNavigate } from 'react-router-dom';
+
+import { StatCard } from "@/components/dashboard/stat-card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
 import {
   FileCheck,
   BarChart3,
@@ -11,143 +23,248 @@ import {
   BookOpen,
   Clock,
   CreditCard,
-  TrendingUp,
-} from "lucide-react"
-
-
-
-const currentCourses = [
-  { code: "CS101", name: "Introduction to Programming", grade: "A", progress: 85 },
-  { code: "MATH201", name: "Linear Algebra", grade: "B+", progress: 72 },
-  { code: "PHYS101", name: "Physics I", grade: "A-", progress: 78 },
-  { code: "ENG102", name: "Technical Writing", grade: "B", progress: 65 },
-]
-
-const todaySchedule = [
-  { time: "9:00 AM", course: "CS101", topic: "Functions and Loops", room: "Hall A-201" },
-  { time: "11:00 AM", course: "MATH201", topic: "Eigenvalues", room: "Room B-102" },
-  { time: "2:00 PM", course: "PHYS101", topic: "Newton's Laws", room: "Lab C-301" },
-]
-
-const aiRecommendations = [
-  { type: "course", text: "Consider taking CS201 next semester to build on your programming skills" },
-  { type: "study", text: "You might benefit from additional practice in Linear Algebra - Chapter 5" },
-  { type: "career", text: "Based on your interests, explore Data Science career paths" },
-]
-
+  TrendingUp
+} from "lucide-react";
 
 export default function DashboardHome() {
+  const [grades, setGrades] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [timetable, setTimetable] = useState({});
+  const [loading, setLoading] = useState(true);
+const navigate = useNavigate();
+
+  // ================= INIT =================
+  useEffect(() => {
+    init();
+  }, []);
+
+  const init = async () => {
+    try {
+      const [gradesRes, coursesRes, timetableRes] = await Promise.all([
+        API.get("/student/grades"),
+        API.get("/enrollments"),
+        API.get("/student-timetable"),
+      ]);
+
+      setGrades(gradesRes.data || []);
+      setCourses(coursesRes.data || []);
+      setTimetable(timetableRes.data || {});
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ================= GPA CALC =================
+  const gpa = useMemo(() => {
+    if (!grades.length) return 0;
+
+    const total = grades.reduce(
+      (sum, g) => sum + (parseFloat(g.gpa_points) || 0),
+      0
+    );
+
+    return (total / grades.length).toFixed(2);
+  }, [grades]);
+
+  // ================= STATS =================
+  const stats = {
+    gpa,
+    credits: courses.length * 3, // fallback assumption
+    courses: courses.length,
+    assignments: 3, // you can connect later if you have endpoint
+  };
+
+  // ================= TODAY SCHEDULE =================
+  const today = new Date().toLocaleString("en-US", { weekday: "long" });
+
+  const todaySchedule = useMemo(() => {
+    const classes = timetable[today] || [];
+
+    return classes.map((c) => ({
+      time: c.time,
+      course: c.code,
+      topic: c.title || "Lecture",
+      room: c.room,
+    }));
+  }, [timetable, today]);
+
+  // ================= CURRENT COURSES =================
+  const currentCourses = useMemo(() => {
+    return courses.map((c) => ({
+      code: c.course?.course_code,
+      name: c.course?.course_title,
+      grade:
+        grades.find((g) => g.enrollment_id === c.id)?.letter_grade || "N/A",
+      progress: Math.floor(Math.random() * 40 + 60), // replace if you add backend progress
+    }));
+  }, [courses, grades]);
+
+  // ================= AI STATIC (can be backend later) =================
+  const aiRecommendations = [
+    "Consider taking CS201 next semester",
+    "Improve Linear Algebra Chapter 5",
+    "Explore Data Science career path",
+  ];
+
+  if (loading) {
+    return <div className="p-8">Loading dashboard...</div>;
+  }
+
   return (
-  <main className="p-6 space-y-6">
-          {/* Stats */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Current GPA" value="3.65" change="0.12" changeType="positive" icon={TrendingUp} />
-            <StatCard title="Credits Earned" value="45" icon={BookOpen} />
-            <StatCard title="Courses This Sem" value="4" icon={Calendar} />
-            <StatCard title="Assignments Due" value="3" icon={Clock} />
-          </div>
+    <main className="p-6 space-y-6">
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* My Courses */}
-            <Card className="lg:col-span-2 border-border">
-              <CardHeader>
-                <CardTitle>Current Courses</CardTitle>
-                <CardDescription>Your enrolled courses this semester</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {currentCourses.map((course, index) => (
-                    <div key={index} className="p-4 rounded-lg bg-muted/50">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{course.code}</span>
-                            <Badge variant="outline">{course.grade}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{course.name}</p>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{course.progress}% complete</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full" style={{ width: `${course.progress}%` }}></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+      {/* ================= STATS ================= */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Current GPA"
+          value={stats.gpa}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Credits Earned"
+          value={stats.credits}
+          icon={BookOpen}
+        />
+        <StatCard
+          title="Courses This Sem"
+          value={stats.courses}
+          icon={Calendar}
+        />
+        <StatCard
+          title="Assignments Due"
+          value={stats.assignments}
+          icon={Clock}
+        />
+      </div>
 
-            {/* AI Academic Advisor */}
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-primary" />
-                  AI Advisor
-                </CardTitle>
-                <CardDescription>Personalized recommendations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {aiRecommendations.map((rec, index) => (
-                    <div key={index} className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <Badge variant="outline" className="mb-2">
-                        {rec.type}
-                      </Badge>
-                      <p className="text-sm text-foreground">{rec.text}</p>
-                    </div>
-                  ))}
-                  <Button className="w-full bg-transparent" variant="outline">
-                    Chat with AI Advisor
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="grid lg:grid-cols-3 gap-6">
 
-          {/* Today's Schedule */}
-          <Card className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Today&apos;s Schedule</CardTitle>
-                <CardDescription>Your classes for today</CardDescription>
-              </div>
-              <Button variant="outline">View Full Timetable</Button>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {todaySchedule.map((classItem, index) => (
-                  <div key={index} className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge>{classItem.course}</Badge>
-                      <span className="text-sm font-medium text-foreground">{classItem.time}</span>
+        {/* ================= COURSES ================= */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Current Courses</CardTitle>
+            <CardDescription>Your enrolled courses this semester</CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-4">
+              {currentCourses.map((course, i) => (
+                <div key={i} className="p-4 rounded bg-muted/50">
+                  <div className="flex justify-between mb-2">
+                    <div>
+                      <span className="font-bold">{course.code}</span>
+                      <p className="text-sm text-muted-foreground">
+                        {course.name}
+                      </p>
                     </div>
-                    <p className="font-medium text-foreground mb-1">{classItem.topic}</p>
-                    <p className="text-sm text-muted-foreground">{classItem.room}</p>
+
+                    <Badge>{course.grade}</Badge>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Quick Actions */}
-          <div className="grid sm:grid-cols-4 gap-4">
-            <Button className="h-auto py-4 flex flex-col gap-2">
-              <FileCheck className="w-6 h-6" />
-              <span>Enroll in Course</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent">
-              <BarChart3 className="w-6 h-6" />
-              <span>View Grades</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent">
-              <CreditCard className="w-6 h-6" />
-              <span>Pay Tuition</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent">
-              <Calendar className="w-6 h-6" />
-              <span>Academic Calendar</span>
-            </Button>
+                  <div className="w-full bg-muted h-2 rounded">
+                    <div
+                      className="bg-primary h-2 rounded"
+                      style={{ width: `${course.progress}%` }}
+                    />
+                  </div>
+
+                  <p className="text-xs mt-1 text-muted-foreground">
+                    {course.progress}% complete
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ================= AI ADVISOR ================= */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="w-5 h-5" />
+              AI Advisor
+            </CardTitle>
+            <CardDescription>Personalized recommendations</CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-3">
+              {aiRecommendations.map((rec, i) => (
+                <div key={i} className="p-3 border rounded bg-primary/5">
+                  <p className="text-sm">{rec}</p>
+                </div>
+              ))}
+
+              <Button className="w-full" onClick={() => navigate('/student/advisor')}>
+                Chat with AI Advisor
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ================= TODAY SCHEDULE ================= */}
+      <Card>
+        <CardHeader className="flex justify-between">
+          <div>
+            <CardTitle>Today's Schedule</CardTitle>
+            <CardDescription>{today}</CardDescription>
           </div>
-        </main>
-  )
+
+          <Button variant="outline" onClick={() => navigate('/student/timetable')}>
+            View Full Timetable
+          </Button>
+        </CardHeader>
+
+        <CardContent>
+          {todaySchedule.length === 0 ? (
+            <p className="text-muted-foreground">
+              No classes today
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-3 gap-4">
+              {todaySchedule.map((c, i) => (
+                <div key={i} className="border p-4 rounded">
+                  <Badge>{c.course}</Badge>
+                  <p className="font-semibold mt-2">{c.topic}</p>
+                  <p className="text-sm text-muted-foreground">{c.time}</p>
+                  <p className="text-sm">{c.room}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ================= QUICK ACTIONS ================= */}
+      <div className="grid sm:grid-cols-4 gap-4">
+
+        <Button onClick={() => navigate('/student/enrollment')} className="flex flex-col h-auto py-4">
+          <FileCheck />
+          Enroll Course
+        </Button>
+
+        <Button onClick={() => navigate('/student/grades')}  variant="outline" className="flex flex-col h-auto py-4">
+          <BarChart3 />
+          View Grades
+        </Button>
+
+        <Button   onClick={() => navigate('/student/payments')} variant="outline" className="flex flex-col h-auto py-4">
+          <CreditCard />
+          Pay Tuition
+        </Button>
+
+        <Button   onClick={() => navigate('/student/timetable')}
+ variant="outline" className="flex flex-col h-auto py-4">
+          <Calendar />
+          Calendar
+        </Button>
+
+
+      </div>
+
+    </main>
+  );
 }

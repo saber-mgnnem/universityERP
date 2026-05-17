@@ -56,6 +56,7 @@ import ProfessorGradesPage from '@/pages/dashboard/professor/grades/GradesPage'
 import ProfessorMaterialsPage from '@/pages/dashboard/professor/materials/MaterialsPage'
 import ProfessorMyCoursesPage from '@/pages/dashboard/professor/my-courses/MyCoursesPage'
 import ProfessorSchedulePage from '@/pages/dashboard/professor/schedule/SchedulePage'
+import ProfessorLeaveManagementPage from '@/pages/dashboard/professor/leave-management/LeaveManagementPage'
 
 import StudentLayout from '@/pages/dashboard/student/StudentLayout'
 import StudentDashboardHome from '@/pages/dashboard/student/DashboardHome'
@@ -183,6 +184,8 @@ function App() {
             <Route path="attendance" element={<ProfessorAttendancePage />} />
             <Route path="schedule" element={<ProfessorSchedulePage />} />
             <Route path="materials" element={<ProfessorMaterialsPage />} />
+            <Route path="leave" element={<ProfessorLeaveManagementPage />} />
+
 
             
           </Route> 

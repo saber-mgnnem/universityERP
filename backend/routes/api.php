@@ -66,7 +66,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('professor-schedule', [CourseOfferingController::class, 'professorSchedule']);
         Route::get('professors', [CourseOfferingController::class, 'professors']);
         Route::get('current-semesters', [CourseOfferingController::class, 'currentSemesters']);
-
+        Route::get('/students', [UserController::class, 'students']);
+        Route::get('/dedepartments', [DepartmentController::class, 'index']);
+        Route::put('/students/{id}/assign-department', [StudentProfileController::class, 'assignDepartment']);
 });
 
 Route::middleware(['auth:api','role:professor'])->group(function () {
@@ -91,11 +93,14 @@ Route::middleware(['auth:api','role:professor'])->group(function () {
     Route::post('/attendance', [AttendanceRecordController::class, 'store']);
     Route::put('/attendance/{id}', [AttendanceRecordController::class, 'update']);
     Route::delete('/attendance/{id}', [AttendanceRecordController::class, 'destroy']);
-     Route::get('/grades', [CourseGradeController::class, 'index']);
-    Route::post('/grades', [CourseGradeController::class, 'store']);
-    Route::put('/grades/{id}', [CourseGradeController::class, 'update']);
-    Route::delete('/grades/{id}', [CourseGradeController::class, 'destroy']);
+  Route::post('/course-grades', [CourseGradeController::class, 'store']);
+Route::put('/course-grades/{id}', [CourseGradeController::class, 'update']);
+Route::delete('/course-grades/{id}', [CourseGradeController::class, 'destroy']);
+ // PROFESSOR ONLY (new)
+    Route::get('/my-leave-requests', [LeaveRequestController::class, 'myRequests']);
 
+    // create leave (both HR & staff if needed)
+    Route::post('/my-leave-requests', [LeaveRequestController::class, 'store']);
 });
 
 
@@ -105,6 +110,7 @@ Route::middleware(['auth:api','role:student'])->group(function () {
 
     Route::get('/enrollments', [EnrollmentController::class, 'index']);
     Route::post('/enrollments', [EnrollmentController::class, 'store']);
+    Route::delete('/enrollments/{id}', [EnrollmentController::class, 'destroy']);
     Route::get('/student-timetable', [TimetableController::class, 'studentTimetable']);
     Route::get('/student/courses/{offeringId}/materials', [CourseMaterialController::class, 'studentindex']);
     Route::post('/student/materials/{id}/complete',[MaterialController::class, 'markDone']);
@@ -112,6 +118,7 @@ Route::middleware(['auth:api','role:student'])->group(function () {
     Route::get('/student/payments', [StudentPaymentController::class, 'index']);
     Route::post('/student/payments/stripe-session', [StudentPaymentController::class, 'createStripeSession']);
     Route::get('/student/payments/{id}/receipt', [StudentPaymentController::class, 'receipt']);
+    Route::get('/student/grades', [CourseGradeController::class, 'myGrades']);
 });
     Route::post('/stripe/webhook', [StudentPaymentController::class, 'stripeWebhook']);
 

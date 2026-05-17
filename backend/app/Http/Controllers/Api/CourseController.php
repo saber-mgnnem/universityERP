@@ -24,7 +24,7 @@ class CourseController extends Controller
             'department_id' => 'required|exists:departments,id',
             'credit_hours' => 'required|integer',
             'max_enrollment' => 'required|integer',
-            'course_level' => 'required|in:100,200,300,400',
+            'coefficient' => 'required|in:1,1.5,2,3,4',
         ]);
 
         $course = Course::create([
@@ -33,7 +33,7 @@ class CourseController extends Controller
             'department_id' => $request->department_id,
             'credit_hours' => $request->credit_hours,
             'max_enrollment' => $request->max_enrollment,
-            'course_level' => $request->course_level,
+            'coefficient' => $request->coefficient,
             'is_active' => true
         ]);
 

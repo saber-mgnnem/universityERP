@@ -19,7 +19,17 @@ class LeaveRequestController extends Controller
             'approver'
         ])->latest()->get();
     }
+public function myRequests()
+{
+    $user = auth()->user();
 
+    return LeaveRequest::with(['staff.user'])
+        ->whereHas('staff', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+        ->latest()
+        ->get();
+}
     /**
      * CREATE LEAVE REQUEST
      */

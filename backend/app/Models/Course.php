@@ -13,7 +13,7 @@ class Course extends Model
         'credit_hours',
         'total_marks',
         'passing_marks',
-        'course_level',
+        'coefficient',
         'prerequisites_text',
         'max_enrollment',
         'is_compulsory',
